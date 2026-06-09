@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'teams',
     'chat',
     'meetings',
+    'notifications',
     'rest_framework_simplejwt.token_blacklist',
 ]
 
