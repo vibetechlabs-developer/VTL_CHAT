@@ -9,6 +9,8 @@ class Notification(models.Model):
         ('MEETING', 'Meeting'),
         ('MENTION', 'Mention'),
         ('TEAM', 'Team'),
+        ("CHANNEL", "Channel"),
+        ("SYSTEM", "System"),
     )
 
     recipient = models.ForeignKey(
