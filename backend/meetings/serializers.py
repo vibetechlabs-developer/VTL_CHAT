@@ -29,7 +29,7 @@ class MeetingParticipantSerializer(serializers.ModelSerializer):
             "role",
             "joined_at",
             "left_at",
-            "created_at"
+            
             
 
         ]

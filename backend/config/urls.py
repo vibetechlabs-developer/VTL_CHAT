@@ -24,6 +24,7 @@ urlpatterns = [
     path('api/users/', include('users.urls')),
     path("api/teams/", include("teams.urls")),
     path("api/messages/", include("chat.urls")),
+    path("api/meetings/", include("meetings.urls")),
 
 ]
 urlpatterns += static(
