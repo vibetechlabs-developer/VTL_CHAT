@@ -12,7 +12,7 @@ class MeetingListCreateView(APIView):
 
     def get(self, request):
 
-        meetings = Meeting.objects.all()
+        meetings = Meeting.objects.filter(host=request.user)
 
         serializer = MeetingSerializer(
             meetings,
@@ -29,7 +29,7 @@ class MeetingListCreateView(APIView):
 
         if serializer.is_valid():
 
-            serializer.save()
+            serializer.save(host=request.user)
 
             return Response(
                 serializer.data,
@@ -46,9 +46,10 @@ class MeetingDetailView(APIView):
 
         try:
 
-            meeting = Meeting.objects.get(
-                id=meeting_id
-            )
+           meeting = Meeting.objects.filter(
+                id=meeting_id,
+                host=request.user
+            ).first()
 
             serializer = MeetingSerializer(meeting)
 
@@ -65,9 +66,10 @@ class MeetingDetailView(APIView):
 
         try:
 
-            meeting = Meeting.objects.get(
-                id=meeting_id
-            )
+           meeting = Meeting.objects.filter(
+                id=meeting_id,
+                host=request.user
+            ).first()
 
             serializer = MeetingSerializer(
                 meeting,
@@ -97,9 +99,10 @@ class MeetingDetailView(APIView):
 
         try:
 
-            meeting = Meeting.objects.get(
-                id=meeting_id
-            )
+            meeting = Meeting.objects.filter(
+                id=meeting_id,
+                host=request.user
+            ).first()
 
             meeting.delete()
 
@@ -118,7 +121,8 @@ class MeetingParticipantListCreateView(APIView):
     def get(self, request, meeting_id):
 
         participants = MeetingParticipant.objects.filter(
-            meeting_id=meeting_id
+            meeting_id=meeting_id,
+            user=request.user
         )
 
         serializer = MeetingParticipantSerializer(
@@ -131,8 +135,9 @@ class MeetingParticipantListCreateView(APIView):
     def post(self, request, meeting_id):
 
         meeting = Meeting.objects.filter(
-            id=meeting_id
-        ).first()
+                id=meeting_id,
+                host=request.user
+            ).first()
 
         if not meeting:
 
@@ -141,19 +146,14 @@ class MeetingParticipantListCreateView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        user_id = request.data.get("user_id")
+        user_id = request.user.id
 
         role = request.data.get(
             "role",
             "PARTICIPANT"
         )
 
-        if not user_id:
-
-            return Response(
-                {"error": "User ID is required"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        
 
         existing_participant = MeetingParticipant.objects.filter(
             meeting=meeting,

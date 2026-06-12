@@ -19,11 +19,14 @@ from .serializers import UserSerializer
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.exceptions import TokenError
 from .models import User
 
 
 class SignupView(APIView):
+
+    permission_classes = [AllowAny]
 
     def post(self, request):
 
@@ -47,6 +50,8 @@ class SignupView(APIView):
         )
 
 class LoginView(APIView):
+
+    permission_classes = [AllowAny]
 
     def post(self, request):
 
@@ -99,6 +104,7 @@ class ProfileView(APIView):
 
 class RefreshTokenView(APIView):
 
+    permission_classes = [AllowAny]
     def post(self, request):
 
         refresh_token = request.data.get("refresh")
@@ -155,8 +161,13 @@ class LogoutView(APIView):
 
 
 class UserListView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
     def get(self, request):
-        users = User.objects.all()
+        users = User.objects.exclude(
+            id=request.user.id
+        )
         serializer = UserSerializer(users, many=True)
         return Response(serializer.data)
 

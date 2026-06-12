@@ -5,14 +5,9 @@ class MessageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Message
-
-        fields = [
-            "id",
-            "sender",
-            "channel",
-            "content",
-            "created_at",
-            "updated_at"
+        fields = "__all__"
+        read_only_fields = [
+            "sender"
         ]
 
 class AttachmentSerializer(serializers.ModelSerializer):
@@ -37,4 +32,8 @@ class ReactionSerializer(serializers.ModelSerializer):
             "user",
             "message",
             "reaction_type"
+        ]
+
+        read_only_fields = [
+            "user"
         ]

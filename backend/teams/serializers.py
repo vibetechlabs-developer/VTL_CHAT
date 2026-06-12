@@ -14,6 +14,11 @@ class TeamSerializer(serializers.ModelSerializer):
             "created_by",
             "created_at"
         ]
+
+        read_only_fields = [
+            "created_by",
+        ]
+
     def validate_name(self, value):
 
         if len(value.strip()) < 3:
@@ -35,6 +40,11 @@ class OrganizationSerializer(serializers.ModelSerializer):
             "created_by",
             "created_at"
         ]
+
+        read_only_fields = [
+            "created_by",
+        ]
+
     def validate_name(self, value):
 
         if len(value.strip()) < 3:
@@ -56,6 +66,9 @@ class TeamMemberSerializer(serializers.ModelSerializer):
             "role",
             "joined_at"
         ]
+        read_only_fields = [
+            "user",
+        ]
 
 class ChannelSerializer(serializers.ModelSerializer):
 
@@ -72,6 +85,10 @@ class ChannelSerializer(serializers.ModelSerializer):
             "channel_type"
         ]
 
+        read_only_fields = [
+            "created_by",
+        ]
+        
     def validate_name(self, value):
 
         if len(value.strip()) < 3:

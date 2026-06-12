@@ -17,6 +17,11 @@ class MeetingSerializer(serializers.ModelSerializer):
             "created_at"
         ]
 
+        read_only_fields = [
+            "host",
+            "created_at"
+        ]
+
 class MeetingParticipantSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -29,7 +34,4 @@ class MeetingParticipantSerializer(serializers.ModelSerializer):
             "role",
             "joined_at",
             "left_at",
-            
-            
-
         ]

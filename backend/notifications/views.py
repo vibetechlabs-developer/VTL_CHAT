@@ -10,7 +10,7 @@ class NotificationListCreateView(APIView):
 
     def get(self, request):
 
-        notifications = Notification.objects.all()
+        notifications = Notification.objects.filter(recipient=request.user)
 
         serializer = NotificationSerializer(
             notifications,
@@ -27,7 +27,10 @@ class NotificationListCreateView(APIView):
 
         if serializer.is_valid():
 
-            serializer.save()
+            # serializer.save()
+            serializer.save(
+                recipient=request.user
+            )
 
             return Response(
                 serializer.data,
@@ -44,8 +47,12 @@ class NotificationDetailView(APIView):
 
     def get(self, request, notification_id):
 
+        # notification = Notification.objects.filter(
+        #     id=notification_id
+        # ).first()
         notification = Notification.objects.filter(
-            id=notification_id
+            id=notification_id,
+            recipient=request.user
         ).first()
 
         if not notification:
@@ -63,9 +70,13 @@ class NotificationDetailView(APIView):
 
     def put(self, request, notification_id):
 
+        # notification = Notification.objects.filter(
+        #     id=notification_id
+        # ).first()
         notification = Notification.objects.filter(
-            id=notification_id
-        ).first()
+    id=notification_id,
+    recipient=request.user
+).first()
 
         if not notification:
 
@@ -82,7 +93,10 @@ class NotificationDetailView(APIView):
 
         if serializer.is_valid():
 
-            serializer.save()
+            # serializer.save()
+            serializer.save(
+                recipient=request.user
+            )
 
             return Response(serializer.data)
 
@@ -94,7 +108,8 @@ class NotificationDetailView(APIView):
     def delete(self, request, notification_id):
 
         notification = Notification.objects.filter(
-            id=notification_id
+            id=notification_id,
+            recipient=request.user
         ).first()
 
         if not notification:
