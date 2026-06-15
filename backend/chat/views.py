@@ -1,7 +1,5 @@
-from django.shortcuts import render
-# Create your views here.
-# from rest_framework import viewsets
 from rest_framework.views import APIView
+from teams.models import Channel
 from .models import Message, Attachment, Reaction
 from .serializers import MessageSerializer, AttachmentSerializer, ReactionSerializer
 from rest_framework.response import Response
@@ -15,7 +13,19 @@ class MessageListCreateView(APIView):
         serializer = MessageSerializer(messages, many=True)
         return Response(serializer.data)
 
-    def post(self,request):
+    def post(self, request):
+        channel_id = request.data.get("channel")
+        channel = Channel.objects.filter(
+            pk=channel_id,
+            team__members__user=request.user
+        ).first()
+
+        if not channel:
+            return Response(
+                {"error": "Channel not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
         serializer = MessageSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save(sender=request.user)
@@ -31,26 +41,25 @@ class MessageDetailView(APIView):
 
     def get(self,request,pk):
         try:
-            # message = Message.objects.filter(pk=pk, sender=request.user).first()
             message = Message.objects.filter(
-            pk=pk,
-            sender=request.user
-            ).first()
+                        pk=pk,
+                        sender=request.user
+                       ).first()
 
             if message is None:
                 return Response(
                     {"error": "Message not found"},
                     status=status.HTTP_404_NOT_FOUND
                 )
+
         except Message.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
+
         serializer = MessageSerializer(message)
-        serializer.save(message=message)
         return Response(serializer.data)
 
     def put(self,request,pk):
         try:
-            # message = Message.objects.get(pk=pk)
             message = Message.objects.filter(
                 pk=pk,
                 sender=request.user
@@ -70,7 +79,6 @@ class MessageDetailView(APIView):
 
     def delete(self,request,pk):
         try:
-            # message = Message.objects.get(pk=pk)
             message = Message.objects.filter(
                     pk=pk,
                     sender=request.user
@@ -97,10 +105,24 @@ class AttachmentListCreateView(APIView):
         return Response(serializer.data)
 
    def post(self, request):
+        message = Message.objects.filter(
+            id=request.data.get("message"),
+            sender=request.user
+        ).first()
+
+        if not message:
+            return Response(
+                {"error": "Message not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
         serializer = AttachmentSerializer(data=request.data)
+
         if serializer.is_valid():
             serializer.save()
+            
             return Response(serializer.data, status=status.HTTP_201_CREATED)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class AttachmentDetailView(APIView):
@@ -112,23 +134,36 @@ class AttachmentDetailView(APIView):
 
     def get(self, request, pk):
         try:
-            # attachment = Attachment.objects.get(pk=pk)
             attachment = Attachment.objects.filter(
-            pk=pk,
-            message__sender=request.user
-        ).first()
+                            pk=pk,
+                            message__sender=request.user
+                        ).first()
+
+            if attachment is None:
+                return Response(
+                    {"error": "Attachment not found"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
         except Attachment.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
+
         serializer = AttachmentSerializer(attachment)
         return Response(serializer.data)
 
     def delete(self, request, pk):
         try:
-            # attachment = Attachment.objects.get(pk=pk)
             attachment = Attachment.objects.filter(
                 pk=pk,
                 message__sender=request.user
             ).first()
+
+            if attachment is None:
+                return Response(
+                    {"error": "Attachment not found"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
         except Attachment.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
         attachment.delete()
@@ -136,11 +171,16 @@ class AttachmentDetailView(APIView):
     
     def put(self, request, pk):
         try:
-            # attachment = Attachment.objects.get(pk=pk)
             attachment = Attachment.objects.filter(
                 pk=pk,
                 message__sender=request.user
             ).first()
+
+            if attachment is None:
+                return Response(
+                    {"error": "Attachment not found"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
         except Attachment.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
         serializer = AttachmentSerializer(attachment, data=request.data, partial=True)
@@ -159,6 +199,18 @@ class ReactionListCreateView(APIView):
         return Response(serializer.data)
 
     def post(self, request):
+        
+        message_id = request.data.get("message")
+        message = Message.objects.filter(
+            pk=message_id,
+            channel__team__members__user=request.user
+        ).first()
+        if not message:
+            return Response(
+                {"error": "Message not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
         serializer = ReactionSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save(user=request.user)
@@ -174,11 +226,16 @@ class ReactionDetailView(APIView):
 
     def get(self, request, pk):
         try:
-            # reaction = Reaction.objects.get(pk=pk)
             reaction = Reaction.objects.filter(
                 pk=pk,
                 user=request.user
             ).first()
+
+            if reaction is None:
+                return Response(
+                    {"error": "Reaction not found"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
         except Reaction.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
         serializer = ReactionSerializer(reaction)
@@ -186,11 +243,16 @@ class ReactionDetailView(APIView):
 
     def delete(self, request, pk):
         try:
-            # reaction = Reaction.objects.get(pk=pk)
             reaction = Reaction.objects.filter(
                 pk=pk,
                 user=request.user
             ).first()
+
+            if reaction is None:
+                return Response(
+                    {"error": "Reaction not found"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
         except Reaction.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
         reaction.delete()
@@ -198,11 +260,15 @@ class ReactionDetailView(APIView):
     
     def put(self, request, pk):
         try:
-            # reaction = Reaction.objects.get(pk=pk)
             reaction = Reaction.objects.filter(
                 pk=pk,
                 user=request.user
             ).first()
+            if reaction is None:
+                    return Response(
+                        {"error": "Reaction not found"},
+                        status=status.HTTP_404_NOT_FOUND
+                    )
         except Reaction.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
         serializer = ReactionSerializer(reaction, data=request.data, partial=True)

@@ -183,17 +183,23 @@ class MeetingParticipantDetailView(APIView):
             meeting_id=meeting_id
         ).first()
 
+        
         if not participant:
-
             return Response(
                 {"error": "Participant not found"},
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        serializer = MeetingParticipantSerializer(
-            participant
-        )
+        if (
+            participant.user != request.user
+            and participant.meeting.host != request.user
+        ):
+            return Response(
+                {"error": "Permission denied"},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
+        serializer = MeetingParticipantSerializer(participant)
         return Response(serializer.data)
 
     def put(
@@ -214,6 +220,15 @@ class MeetingParticipantDetailView(APIView):
                 {"error": "Participant not found"},
                 status=status.HTTP_404_NOT_FOUND
             )
+
+        if (
+                participant.user != request.user
+                and participant.meeting.host != request.user
+            ):
+                return Response(
+                    {"error": "Permission denied"},
+                    status=status.HTTP_403_FORBIDDEN
+                )
 
         serializer = MeetingParticipantSerializer(
             participant,
@@ -244,12 +259,23 @@ class MeetingParticipantDetailView(APIView):
             meeting_id=meeting_id
         ).first()
 
+
+
         if not participant:
 
             return Response(
                 {"error": "Participant not found"},
                 status=status.HTTP_404_NOT_FOUND
             )
+
+        if (
+                participant.user != request.user
+                and participant.meeting.host != request.user
+            ):
+                return Response(
+                    {"error": "Permission denied"},
+                    status=status.HTTP_403_FORBIDDEN
+                )
 
         participant.delete()
 

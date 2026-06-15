@@ -35,6 +35,8 @@ class Attachment(models.Model):
         related_name='attachments'
     )
 
+
+
     file = models.FileField(
         upload_to='attachments/'
     )
@@ -46,6 +48,8 @@ class Attachment(models.Model):
     def __str__(self):
         return self.file.name
 
+
+
 class Reaction(models.Model):
 
     REACTION_CHOICES = (
@@ -54,6 +58,14 @@ class Reaction(models.Model):
         ('LAUGH', '😂'),
         ('CELEBRATE', '🎉'),
     )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "message"],
+                name="unique_reaction_per_user_message"
+            )
+        ]
 
     user = models.ForeignKey(
         User,

@@ -1,17 +1,3 @@
-# from rest_framework import generics
-# from .models import User
-# from .serializers import UserSerializer
-# from rest_framework_simplejwt.views import TokenObtainPairView
-
-
-# class SignupView(generics.CreateAPIView):
-#     queryset = User.objects.all()
-#     serializer_class = UserSerializer
-
-# class LoginView(TokenObtainPairView):
-#     pass
-
-
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status

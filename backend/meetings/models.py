@@ -32,6 +32,14 @@ class Meeting(models.Model):
 
 class MeetingParticipant(models.Model):
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["meeting", "user"],
+                name="unique_meeting_participant"
+            )
+        ]
+
     ROLE_CHOICES = (
         ('HOST', 'Host'),
         ('CO_HOST', 'Co Host'),

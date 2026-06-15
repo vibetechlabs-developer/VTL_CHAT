@@ -1,12 +1,11 @@
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-
-from .models import Team, Organization, Channel
-from .serializers import TeamSerializer, OrganizationSerializer, ChannelSerializer, TeamMemberSerializer
-from users.models import User
-from .models import TeamMember
 from django.shortcuts import get_object_or_404
+
+from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from .models import Channel, Organization, Team, TeamMember
+from .serializers import ChannelSerializer, OrganizationSerializer, TeamMemberSerializer, TeamSerializer
 
 
 class OrganizationListCreateView(APIView):
