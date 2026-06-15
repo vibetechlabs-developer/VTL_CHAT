@@ -192,6 +192,11 @@ class UserDetailView(APIView):
 
     def put(self, request, pk):
         user = self.get_object(pk)
+        if request.user.id != int(pk):
+            return Response(
+                {"error": "Permission denied"},
+                status=status.HTTP_403_FORBIDDEN
+            )
         if user is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
         serializer = UserSerializer(user, data=request.data, partial=True)
@@ -202,6 +207,11 @@ class UserDetailView(APIView):
 
     def delete(self, request, pk):
         user = self.get_object(pk)
+        if request.user.id != int(pk):
+            return Response(
+                {"error": "Permission denied"},
+                status=status.HTTP_403_FORBIDDEN
+            )
         if user is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
         user.delete()

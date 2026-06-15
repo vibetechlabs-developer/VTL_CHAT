@@ -44,78 +44,63 @@ class MeetingDetailView(APIView):
 
     def get(self, request, meeting_id):
 
-        try:
+        meeting = Meeting.objects.filter(
+            id=meeting_id,
+            host=request.user
+        ).first()
 
-           meeting = Meeting.objects.filter(
-                id=meeting_id,
-                host=request.user
-            ).first()
-
-            serializer = MeetingSerializer(meeting)
-
-            return Response(serializer.data)
-
-        except Meeting.DoesNotExist:
-
+        if not meeting:
             return Response(
                 {"error": "Meeting not found"},
                 status=status.HTTP_404_NOT_FOUND
             )
+
+        serializer = MeetingSerializer(meeting)
+        return Response(serializer.data)
 
     def put(self, request, meeting_id):
 
-        try:
+        meeting = Meeting.objects.filter(
+            id=meeting_id,
+            host=request.user
+        ).first()
 
-           meeting = Meeting.objects.filter(
-                id=meeting_id,
-                host=request.user
-            ).first()
-
-            serializer = MeetingSerializer(
-                meeting,
-                data=request.data,
-                partial=True
-            )
-
-            if serializer.is_valid():
-
-                serializer.save()
-
-                return Response(serializer.data)
-
-            return Response(
-                serializer.errors,
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        except Meeting.DoesNotExist:
-
+        if not meeting:
             return Response(
                 {"error": "Meeting not found"},
                 status=status.HTTP_404_NOT_FOUND
             )
+
+        serializer = MeetingSerializer(
+            meeting,
+            data=request.data,
+            partial=True
+        )
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+
+        return Response(
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     def delete(self, request, meeting_id):
 
-        try:
+        meeting = Meeting.objects.filter(
+            id=meeting_id,
+            host=request.user
+        ).first()
 
-            meeting = Meeting.objects.filter(
-                id=meeting_id,
-                host=request.user
-            ).first()
-
-            meeting.delete()
-
-            return Response(
-                status=status.HTTP_204_NO_CONTENT
-            )
-
-        except Meeting.DoesNotExist:
-
+        if not meeting:
             return Response(
                 {"error": "Meeting not found"},
                 status=status.HTTP_404_NOT_FOUND
             )
+
+        meeting.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 class MeetingParticipantListCreateView(APIView):
 
     def get(self, request, meeting_id):

@@ -46,6 +46,7 @@ class Team(models.Model):
 
 class TeamMember(models.Model):
 
+    
     ROLE_CHOICES = (
         ('ADMIN', 'Admin'),
         ('MEMBER', 'Member'),
@@ -73,6 +74,16 @@ class TeamMember(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.team.name}"
+  
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "team"],
+                name="unique_team_member"
+            )
+        ]
+
+        
 
 
 class Channel(models.Model):

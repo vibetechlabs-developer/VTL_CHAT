@@ -57,9 +57,9 @@ class OrganizationDetailView(APIView):
     def delete(self, request, pk):
         # organization = self.get_object(pk)
         organization = Organization.objects.filter(
-    pk=pk,
-    created_by=request.user
-).first()
+            pk=pk,
+            created_by=request.user
+        ).first()
         if organization is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
         organization.delete()
@@ -102,23 +102,23 @@ class TeamDetailView(APIView):
     def put(self, request, pk):
         # team = self.get_object(pk)
         team = Team.objects.filter(
-    pk=pk,
-    members__user=request.user
-).first()
+            pk=pk,
+            members__user=request.user
+        ).first()
         if team is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
         serializer = TeamSerializer(team, data=request.data,partial=True)
         if serializer.is_valid():
-            serializer.save(created_by=request.user)
+            serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk):
         # team = self.get_object(pk)
         team = Team.objects.filter(
-    pk=pk,
-    members__user=request.user
-).first()
+            pk=pk,
+            members__user=request.user
+        ).first()
         if team is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
         team.delete()
@@ -166,7 +166,16 @@ class TeamMemberDetailView(APIView):
             user_id=user_pk
         )
 
+        if membership.user != request.user:
+            return Response(
+                {"error": "Permission denied"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+
         membership.delete()
+
+        
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -206,14 +215,14 @@ class ChannelDetailView(APIView):
     def put(self, request, pk):
         # channel = self.get_object(pk)
         channel = Channel.objects.filter(
-    pk=pk,
-    team__members__user=request.user
-).first()
+            pk=pk,
+            team__members__user=request.user
+        ).first()
         if channel is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
         serializer = ChannelSerializer(channel, data=request.data, partial=True)
         if serializer.is_valid():
-            serializer.save(created_by=request.user)
+            serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -226,3 +235,4 @@ class ChannelDetailView(APIView):
         if channel is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
         channel.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

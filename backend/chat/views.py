@@ -36,18 +36,30 @@ class MessageDetailView(APIView):
             pk=pk,
             sender=request.user
             ).first()
+
+            if message is None:
+                return Response(
+                    {"error": "Message not found"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
         except Message.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
         serializer = MessageSerializer(message)
+        serializer.save(message=message)
         return Response(serializer.data)
 
     def put(self,request,pk):
         try:
             # message = Message.objects.get(pk=pk)
             message = Message.objects.filter(
-    pk=pk,
-    sender=request.user
-).first()
+                pk=pk,
+                sender=request.user
+            ).first()
+            if message is None:
+                return Response(
+                    {"error": "Message not found"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
         except Message.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
         serializer = MessageSerializer(message, data=request.data, partial=True)
@@ -60,9 +72,14 @@ class MessageDetailView(APIView):
         try:
             # message = Message.objects.get(pk=pk)
             message = Message.objects.filter(
-    pk=pk,
-    sender=request.user
-).first()
+                    pk=pk,
+                    sender=request.user
+                ).first()
+            if message is None:
+                return Response(
+                    {"error": "Message not found"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
         except Message.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
         message.delete()

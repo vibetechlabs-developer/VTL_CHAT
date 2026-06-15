@@ -22,6 +22,15 @@ class AttachmentSerializer(serializers.ModelSerializer):
             "uploaded_at"
         ]
 
+    def validate_file(self, value):
+
+        if value.size > 10 * 1024 * 1024:
+            raise serializers.ValidationError(
+                "File too large"
+            )
+
+        return value
+
 class ReactionSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -31,7 +40,8 @@ class ReactionSerializer(serializers.ModelSerializer):
             "id",
             "user",
             "message",
-            "reaction_type"
+            "reaction_type",
+            "created_at"
         ]
 
         read_only_fields = [
