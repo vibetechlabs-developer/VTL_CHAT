@@ -1,3 +1,4 @@
+from django.db.models import Q
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -12,7 +13,10 @@ class MeetingListCreateView(APIView):
 
     def get(self, request):
 
-        meetings = Meeting.objects.filter(host=request.user)
+        meetings = Meeting.objects.filter(
+            Q(host=request.user) |
+            Q(channel__team__members__user=request.user)
+        ).distinct().order_by("start_time")
 
         serializer = MeetingSerializer(
             meetings,
@@ -45,9 +49,11 @@ class MeetingDetailView(APIView):
     def get(self, request, meeting_id):
 
         meeting = Meeting.objects.filter(
-            id=meeting_id,
-            host=request.user
-        ).first()
+            id=meeting_id
+        ).filter(
+            Q(host=request.user) |
+            Q(channel__team__members__user=request.user)
+        ).distinct().first()
 
         if not meeting:
             return Response(
@@ -104,10 +110,23 @@ class MeetingDetailView(APIView):
 class MeetingParticipantListCreateView(APIView):
 
     def get(self, request, meeting_id):
+        meeting = Meeting.objects.filter(id=meeting_id).first()
+        if not meeting:
+            return Response(
+                {"error": "Meeting not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        is_host = (meeting.host == request.user)
+        is_member = meeting.channel.team.members.filter(user=request.user).exists()
+        if not (is_host or is_member):
+            return Response(
+                {"error": "Permission denied"},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         participants = MeetingParticipant.objects.filter(
-            meeting_id=meeting_id,
-            user=request.user
+            meeting_id=meeting_id
         )
 
         serializer = MeetingParticipantSerializer(
@@ -127,11 +146,17 @@ class MeetingParticipantListCreateView(APIView):
         if not meeting:
 
             return Response(
-                {"error": "Meeting not found"},
+                {"error": "Meeting not found or you are not the host"},
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        user_id = request.user.id
+        user_id = request.data.get("user") or request.user.id
+
+        if not meeting.channel.team.members.filter(user_id=user_id).exists():
+            return Response(
+                {"error": "User is not a member of this team"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         role = request.data.get(
             "role",

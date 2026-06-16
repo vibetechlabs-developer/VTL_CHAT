@@ -11,6 +11,7 @@ class TeamSerializer(serializers.ModelSerializer):
             "name",
             "description",
             "organization",
+            "team_type",
             "created_by",
             "created_at"
         ]

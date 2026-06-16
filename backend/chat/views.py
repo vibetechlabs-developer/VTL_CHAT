@@ -8,8 +8,26 @@ from django.http import Http404
 
 class MessageListCreateView(APIView):
     
-    def get(self,request):
-        messages = Message.objects.filter(sender=request.user)
+    def get(self, request):
+        channel_id = request.query_params.get("channel")
+        if channel_id:
+            # Verify user is a member of the team for this channel
+            channel = Channel.objects.filter(
+                pk=channel_id,
+                team__members__user=request.user
+            ).first()
+            if not channel:
+                return Response(
+                    {"error": "Channel not found or you do not have permission"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            messages = Message.objects.filter(channel=channel).order_by('created_at')
+        else:
+            # Fallback: get all messages in user's team channels
+            messages = Message.objects.filter(
+                channel__team__members__user=request.user
+            ).distinct().order_by('created_at')
+
         serializer = MessageSerializer(messages, many=True)
         return Response(serializer.data)
 
@@ -39,12 +57,12 @@ class MessageDetailView(APIView):
         except Message.DoesNotExist:
             raise Http404
 
-    def get(self,request,pk):
+    def get(self, request, pk):
         try:
             message = Message.objects.filter(
-                        pk=pk,
-                        sender=request.user
-                       ).first()
+                pk=pk,
+                channel__team__members__user=request.user
+            ).distinct().first()
 
             if message is None:
                 return Response(

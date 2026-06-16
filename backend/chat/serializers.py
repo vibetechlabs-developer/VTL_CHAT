@@ -9,7 +9,7 @@ class MessageSerializer(serializers.ModelSerializer):
         fields = "__all__"
         read_only_fields = [
             "sender"
-        ]
+        ]   
 
 class AttachmentSerializer(serializers.ModelSerializer):
 
@@ -22,15 +22,16 @@ class AttachmentSerializer(serializers.ModelSerializer):
             "file",
             "uploaded_at"
         ]
-
     def validate_file(self, value):
         allowed = ['.pdf', '.jpg', '.jpeg', '.png', '.doc', '.docx']
         ext = os.path.splitext(value.name)[1].lower()
         if ext not in allowed:
-            raise serializers.ValidationError("File type not allowed")
+            raise serializers.ValidationError("File type not allowed")    
 
         if value.size > 10 * 1024 * 1024:
-            raise serializers.ValidationError("File too large")
+            raise serializers.ValidationError(
+                "File too large"
+            )
 
         return value
 

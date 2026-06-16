@@ -1,4 +1,6 @@
 from django.shortcuts import get_object_or_404
+from django.db.models import Q
+from users.models import User
 
 from rest_framework import status
 from rest_framework.response import Response
@@ -66,16 +68,30 @@ class OrganizationDetailView(APIView):
 
 class TeamListCreateView(APIView):
     def get(self, request):
+        user_orgs = Organization.objects.filter(
+            Q(created_by=request.user) | Q(teams__members__user=request.user)
+        ).distinct()
         teams = Team.objects.filter(
-           members__user=request.user
+            Q(members__user=request.user) |
+            Q(team_type='PUBLIC', organization__in=user_orgs)
         ).distinct()
         serializer = TeamSerializer(teams, many=True)
         return Response(serializer.data)
 
     def post(self, request):
+        organization_id = request.data.get("organization")
+        org = Organization.objects.filter(id=organization_id, created_by=request.user).first()
+        if not org:
+            return Response(
+                {"error": "Organization not found or you do not have permission to use it."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         serializer = TeamSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save(created_by=request.user)
+            team = serializer.save(created_by=request.user)
+            # Automatically add creator as ADMIN member
+            TeamMember.objects.create(team=team, user=request.user, role='ADMIN')
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -88,46 +104,65 @@ class TeamDetailView(APIView):
             return None
 
     def get(self, request, pk):
-        # team = self.get_object(pk)
-        team = Team.objects.filter(
-            pk=pk,
-            members__user=request.user
-        ).first()
+        user_orgs = Organization.objects.filter(
+            Q(created_by=request.user) | Q(teams__members__user=request.user)
+        ).distinct()
+        team = Team.objects.filter(pk=pk).filter(
+            Q(members__user=request.user) |
+            Q(team_type='PUBLIC', organization__in=user_orgs)
+        ).distinct().first()
         if team is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
         serializer = TeamSerializer(team)
         return Response(serializer.data)
 
     def put(self, request, pk):
-        # team = self.get_object(pk)
-        team = Team.objects.filter(
-            pk=pk,
-            members__user=request.user
-        ).first()
+        team = Team.objects.filter(pk=pk).first()
         if team is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        serializer = TeamSerializer(team, data=request.data,partial=True)
+
+        is_admin = TeamMember.objects.filter(team=team, user=request.user, role='ADMIN').exists()
+        if not is_admin and team.created_by != request.user:
+            return Response(
+                {"error": "Permission denied. Only team admins can edit the team."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        serializer = TeamSerializer(team, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk):
-        # team = self.get_object(pk)
-        team = Team.objects.filter(
-            pk=pk,
-            members__user=request.user
-        ).first()
+        team = Team.objects.filter(pk=pk).first()
         if team is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
+
+        is_admin = TeamMember.objects.filter(team=team, user=request.user, role='ADMIN').exists()
+        if not is_admin and team.created_by != request.user:
+            return Response(
+                {"error": "Permission denied. Only team admins can delete the team."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         team.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 class TeamMemberListCreateView(APIView):
 
     def get(self, request):
-
-        members = TeamMember.objects.filter(user=request.user)
+        team_id = request.query_params.get("team")
+        if team_id:
+            # User must be a member of the team to see its member list
+            if not TeamMember.objects.filter(team_id=team_id, user=request.user).exists():
+                return Response(
+                    {"error": "You do not have access to this team's members."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            members = TeamMember.objects.filter(team_id=team_id)
+        else:
+            members = TeamMember.objects.filter(user=request.user)
 
         serializer = TeamMemberSerializer(
             members,
@@ -137,24 +172,40 @@ class TeamMemberListCreateView(APIView):
         return Response(serializer.data)
 
     def post(self, request):
+        team_id = request.data.get("team")
+        team = get_object_or_404(Team, id=team_id)
 
-        serializer = TeamMemberSerializer(
-            data=request.data
-        )
+        user_id = request.data.get("user")
+        if user_id:
+            is_admin = TeamMember.objects.filter(team=team, user=request.user, role='ADMIN').exists()
+            if not is_admin and team.created_by != request.user:
+                return Response(
+                    {"error": "Only team admins can add other users to this team."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            target_user = get_object_or_404(User, id=user_id)
+        else:
+            target_user = request.user
 
-        if serializer.is_valid():
+        if team.team_type == 'PRIVATE':
+            is_admin = TeamMember.objects.filter(team=team, user=request.user, role='ADMIN').exists()
+            if not is_admin and team.created_by != request.user:
+                return Response(
+                    {"error": "Only team admins can add members to a private team."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
 
-            serializer.save(user=request.user)
-
+        if TeamMember.objects.filter(team=team, user=target_user).exists():
             return Response(
-                serializer.data,
-                status=status.HTTP_201_CREATED
+                {"error": "User is already a member of this team."},
+                status=status.HTTP_400_BAD_REQUEST
             )
 
-        return Response(
-            serializer.errors,
-            status=status.HTTP_400_BAD_REQUEST
-        )
+        serializer = TeamMemberSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(user=target_user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class TeamMemberDetailView(APIView):
      def delete(self, request, team_pk, user_pk):
@@ -187,6 +238,13 @@ class ChannelListCreateView(APIView):
         return Response(serializer.data)
 
     def post(self, request):
+        team_id = request.data.get("team")
+        if not TeamMember.objects.filter(team_id=team_id, user=request.user).exists():
+            return Response(
+                {"error": "You must be a team member to create a channel."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         serializer = ChannelSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save(created_by=request.user)

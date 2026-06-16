@@ -22,6 +22,11 @@ class Organization(models.Model):
 
 class Team(models.Model):
 
+    TEAM_TYPES = (
+        ('PUBLIC', 'Public'),
+        ('PRIVATE', 'Private'),
+    )
+
     name = models.CharField(max_length=100)
 
     description = models.TextField(blank=True)
@@ -36,6 +41,12 @@ class Team(models.Model):
         User,
         on_delete=models.CASCADE,
         related_name='created_teams'
+    )
+
+    team_type = models.CharField(
+        max_length=20,
+        choices=TEAM_TYPES,
+        default='PUBLIC'
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
