@@ -11,7 +11,7 @@ from .serializers import ChannelSerializer, OrganizationSerializer, TeamMemberSe
 
 
 class OrganizationListCreateView(APIView):
-    def get(self, request):
+    def get(self, request):  
         organizations = Organization.objects.filter(created_by=request.user)
         serializer = OrganizationSerializer(organizations, many=True)
         return Response(serializer.data)
@@ -31,7 +31,6 @@ class OrganizationDetailView(APIView):
             return None
 
     def get(self, request, pk):
-        # organization = self.get_object(pk)
         organization = Organization.objects.filter(
             pk=pk,
             created_by=request.user
@@ -42,7 +41,6 @@ class OrganizationDetailView(APIView):
         return Response(serializer.data)
 
     def put(self, request, pk):
-        # organization = self.get_object(pk)
         organization = Organization.objects.filter(
             pk=pk,
             created_by=request.user
@@ -90,7 +88,6 @@ class TeamListCreateView(APIView):
         serializer = TeamSerializer(data=request.data)
         if serializer.is_valid():
             team = serializer.save(created_by=request.user)
-            # Automatically add creator as ADMIN member
             TeamMember.objects.create(team=team, user=request.user, role='ADMIN')
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

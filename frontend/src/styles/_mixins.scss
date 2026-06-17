@@ -1,0 +1,68 @@
+@use "./variables" as *;
+
+/* ==========================================
+   FLEX
+========================================== */
+
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* ==========================================
+   GLASS EFFECT
+========================================== */
+
+@mixin glass {
+  background: $glass-bg;
+  border: 1px solid $glass-border;
+
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* ==========================================
+   TRANSITION
+========================================== */
+
+@mixin transition {
+  transition: $transition-normal;
+}
+
+/* ==========================================
+   HOVER LIFT
+========================================== */
+
+@mixin hover-lift {
+  transition: $transition-normal;
+
+  &:hover {
+    transform: translateY(-3px);
+  }
+}
+
+/* ==========================================
+   SCROLLBAR
+========================================== */
+
+@mixin scrollbar {
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.15);
+    border-radius: 20px;
+  }
+}
