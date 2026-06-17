@@ -11,4 +11,4 @@ export const signupUser = (data) =>
   API.post("/users/signup/", data);
 
 export const refreshToken = (data) =>
-  API.post("/users/token/refresh/", data);
+  API.post("/users/refresh/", data);

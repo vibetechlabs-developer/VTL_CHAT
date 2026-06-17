@@ -1,0 +1,126 @@
+@use "../../styles/variables" as *;
+@use "../../styles/mixins" as *;
+
+.settings-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-width: 720px;
+}
+
+.settings-section {
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid $glass-border;
+
+    svg { color: $accent-purple-light; }
+
+    h4 {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+  }
+}
+
+.settings-row {
+  @include flex-between;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+
+  &:last-child { border-bottom: none; }
+
+  &__label {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 0.15rem;
+  }
+
+  &__desc {
+    font-size: 0.8rem;
+    color: $text-dim;
+  }
+
+  &__link {
+    background: transparent;
+    color: $accent-purple-light;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.35rem 0.75rem;
+    border-radius: $radius-sm;
+    border: 1px solid $border-purple;
+    transition: $transition-fast;
+
+    &:hover {
+      background: rgba(124, 58, 237, 0.1);
+    }
+  }
+}
+
+.settings-toggle {
+  width: 44px;
+  height: 24px;
+  border-radius: $radius-full;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid $glass-border;
+  position: relative;
+  transition: $transition-fast;
+  flex-shrink: 0;
+
+  span {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: white;
+    transition: $transition-fast;
+  }
+
+  &--on {
+    background: $accent-purple;
+    border-color: $accent-purple;
+
+    span {
+      left: 22px;
+    }
+  }
+}
+
+.settings-shortcuts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+
+  div {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.85rem;
+  }
+
+  kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 26px;
+    padding: 0 0.4rem;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid $glass-border;
+    font-size: 0.75rem;
+    font-family: inherit;
+    color: $text-muted;
+  }
+
+  span {
+    margin-left: 0.5rem;
+    color: $text-dim;
+  }
+}

@@ -1,0 +1,147 @@
+@use "../../styles/variables" as *;
+@use "../../styles/mixins" as *;
+
+.profile-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+
+  &__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+
+    @media (max-width: 900px) {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+.profile-hero {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+
+  &__avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: $radius-lg;
+    background: linear-gradient(135deg, $accent-purple, $accent-blue);
+    @include flex-center;
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: white;
+    box-shadow: 0 8px 32px rgba(124, 58, 237, 0.35);
+  }
+
+  &__info {
+    flex: 1;
+    min-width: 200px;
+
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    p {
+      color: $text-muted;
+      margin: 0.25rem 0 0.5rem;
+    }
+  }
+
+  &__badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.25rem 0.6rem;
+    border-radius: $radius-full;
+    background: rgba(124, 58, 237, 0.12);
+    color: $accent-purple-light;
+    border: 1px solid $border-purple;
+  }
+}
+
+.profile-detail,
+.profile-stats {
+  h4 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 1.25rem;
+  }
+}
+
+.profile-detail__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid $glass-border;
+
+  &:last-child { border-bottom: none; }
+
+  svg {
+    color: $text-dim;
+    margin-top: 0.15rem;
+  }
+
+  span {
+    display: block;
+    font-size: 0.75rem;
+    color: $text-dim;
+    margin-bottom: 0.15rem;
+  }
+
+  p {
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+}
+
+.profile-stats__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+
+  div {
+    padding: 1rem;
+    border-radius: $radius-md;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid $glass-border;
+    text-align: center;
+  }
+
+  strong {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin-bottom: 0.25rem;
+  }
+
+  span {
+    font-size: 0.75rem;
+    color: $text-muted;
+  }
+}
+
+.vtl-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.65rem 1.15rem;
+  border-radius: $radius-md;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: $transition-fast;
+
+  &--ghost {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid $glass-border;
+    color: $text-primary;
+
+    &:hover { background: $glass-bg-hover; }
+  }
+}

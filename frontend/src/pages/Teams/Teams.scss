@@ -1,0 +1,113 @@
+@use "../../styles/variables" as *;
+@use "../../styles/mixins" as *;
+
+.teams-page {
+  &__toolbar {
+    margin-bottom: 0.5rem;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.25rem;
+  }
+}
+
+.team-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+
+  &__head {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  &__icon {
+    width: 48px;
+    height: 48px;
+    border-radius: $radius-md;
+    @include flex-center;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: white;
+    flex-shrink: 0;
+  }
+
+  &__meta {
+    flex: 1;
+    min-width: 0;
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
+    p {
+      font-size: 0.8rem;
+      color: $text-muted;
+      line-height: 1.5;
+    }
+  }
+
+  &__menu {
+    background: transparent;
+    color: $text-dim;
+
+    &:hover { color: $text-primary; }
+  }
+
+  &__stats {
+    display: flex;
+    gap: 1.25rem;
+
+    span {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.8rem;
+      color: $text-muted;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    gap: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid $glass-border;
+  }
+}
+
+.vtl-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.65rem 1.15rem;
+  border-radius: $radius-md;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: $transition-fast;
+
+  &--primary {
+    background: linear-gradient(135deg, $accent-purple, $accent-blue);
+    color: white;
+    box-shadow: 0 4px 16px rgba(124, 58, 237, 0.35);
+
+    &:hover { transform: translateY(-2px); }
+  }
+
+  &--ghost {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid $glass-border;
+    color: $text-primary;
+
+    &:hover { background: $glass-bg-hover; }
+  }
+
+  &--sm {
+    padding: 0.4rem 0.85rem;
+    font-size: 0.75rem;
+  }
+}

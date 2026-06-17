@@ -1,9 +1,5 @@
 @use "./variables" as *;
 
-/* ==========================================
-   FLEX
-========================================== */
-
 @mixin flex-center {
   display: flex;
   align-items: center;
@@ -16,29 +12,33 @@
   justify-content: space-between;
 }
 
-/* ==========================================
-   GLASS EFFECT
-========================================== */
-
-@mixin glass {
+@mixin glass-panel {
   background: $glass-bg;
   border: 1px solid $glass-border;
-
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-radius: $radius-lg;
 }
 
-/* ==========================================
-   TRANSITION
-========================================== */
+@mixin glass-panel-hover {
+  @include glass-panel;
+  transition: $transition-normal;
+
+  &:hover {
+    background: $glass-bg-hover;
+    border-color: $glass-border-hover;
+    transform: translateY(-2px);
+    box-shadow: $shadow-md;
+  }
+}
+
+@mixin glass {
+  @include glass-panel;
+}
 
 @mixin transition {
   transition: $transition-normal;
 }
-
-/* ==========================================
-   HOVER LIFT
-========================================== */
 
 @mixin hover-lift {
   transition: $transition-normal;
@@ -48,13 +48,25 @@
   }
 }
 
-/* ==========================================
-   SCROLLBAR
-========================================== */
+@mixin text-gradient {
+  background: linear-gradient(135deg, $text-primary 0%, $accent-purple-light 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@mixin aurora-mesh {
+  background:
+    radial-gradient(ellipse at 15% 20%, rgba(124, 58, 237, 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 15%, rgba(37, 99, 235, 0.1) 0%, transparent 45%),
+    radial-gradient(ellipse at 50% 80%, rgba(124, 58, 237, 0.06) 0%, transparent 40%),
+    $bg-primary;
+}
 
 @mixin scrollbar {
   &::-webkit-scrollbar {
-    width: 6px;
+    width: 5px;
+    height: 5px;
   }
 
   &::-webkit-scrollbar-track {
@@ -62,7 +74,18 @@
   }
 
   &::-webkit-scrollbar-thumb {
-    background: rgba(255,255,255,0.15);
-    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: $radius-full;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+  }
+}
+
+@mixin focus-ring {
+  &:focus-visible {
+    outline: 2px solid rgba(124, 58, 237, 0.5);
+    outline-offset: 2px;
   }
 }

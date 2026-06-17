@@ -1,0 +1,66 @@
+@use "../../styles/variables" as *;
+
+.aurora-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: $bg-primary;
+
+  &__mesh {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 20% 0%, rgba(124, 58, 237, 0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 10%, rgba(37, 99, 235, 0.06) 0%, transparent 45%),
+      radial-gradient(ellipse at 40% 100%, rgba(124, 58, 237, 0.05) 0%, transparent 40%);
+  }
+
+  &__orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.5;
+    animation: aurora-drift 20s ease-in-out infinite;
+
+    &--purple {
+      width: 600px;
+      height: 600px;
+      background: rgba(124, 58, 237, 0.15);
+      top: -200px;
+      left: -100px;
+    }
+
+    &--blue {
+      width: 500px;
+      height: 500px;
+      background: rgba(37, 99, 235, 0.12);
+      top: 20%;
+      right: -150px;
+      animation-delay: -7s;
+    }
+
+    &--violet {
+      width: 400px;
+      height: 400px;
+      background: rgba(167, 139, 250, 0.08);
+      bottom: -100px;
+      left: 30%;
+      animation-delay: -14s;
+    }
+  }
+}
+
+@keyframes aurora-drift {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(30px, -20px) scale(1.05);
+  }
+  66% {
+    transform: translate(-20px, 15px) scale(0.95);
+  }
+}

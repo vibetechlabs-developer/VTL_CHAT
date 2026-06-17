@@ -1,0 +1,91 @@
+@use "../../styles/variables" as *;
+@use "../../styles/mixins" as *;
+
+.notifications-page {
+  &__toolbar {
+    margin-bottom: 0.5rem;
+  }
+
+  &__list {
+    overflow: hidden;
+  }
+}
+
+.notif-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.15rem 1.5rem;
+  border-bottom: 1px solid $glass-border;
+  transition: $transition-fast;
+  cursor: pointer;
+  position: relative;
+
+  &:last-child { border-bottom: none; }
+
+  &:hover {
+    background: $glass-bg-hover;
+  }
+
+  &--unread {
+    background: rgba(124, 58, 237, 0.04);
+  }
+
+  &__icon {
+    width: 42px;
+    height: 42px;
+    border-radius: $radius-md;
+    @include flex-center;
+    flex-shrink: 0;
+
+    &--mention { background: rgba(124, 58, 237, 0.12); color: $accent-purple-light; }
+    &--message { background: rgba(37, 99, 235, 0.12); color: $accent-blue-light; }
+    &--invite { background: rgba(16, 185, 129, 0.12); color: $accent-green; }
+    &--meeting { background: rgba(245, 158, 11, 0.12); color: $accent-yellow; }
+    &--system { background: rgba(255, 255, 255, 0.06); color: $text-muted; }
+  }
+
+  &__body {
+    flex: 1;
+    min-width: 0;
+
+    p {
+      font-size: 0.9rem;
+      font-weight: 500;
+      margin-bottom: 0.2rem;
+    }
+
+    span {
+      font-size: 0.75rem;
+      color: $text-dim;
+    }
+  }
+
+  &__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: $accent-purple;
+    box-shadow: 0 0 8px $accent-purple;
+    flex-shrink: 0;
+  }
+}
+
+.vtl-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.65rem 1.15rem;
+  border-radius: $radius-md;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: $transition-fast;
+
+  &--ghost {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid $glass-border;
+    color: $text-primary;
+
+    &:hover { background: $glass-bg-hover; }
+  }
+}

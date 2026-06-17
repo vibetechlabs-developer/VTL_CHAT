@@ -1,0 +1,97 @@
+@use "../../styles/variables" as *;
+@use "../../styles/mixins" as *;
+
+.vtl-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 600;
+  background: rgba(5, 8, 22, 0.75);
+  backdrop-filter: blur(8px);
+  @include flex-center;
+  padding: 1.5rem;
+
+  &__panel {
+    width: 100%;
+    max-width: 480px;
+    @include glass-panel;
+    padding: 1.5rem;
+    box-shadow: $shadow-lg;
+  }
+
+  &__header {
+    @include flex-between;
+    margin-bottom: 1.25rem;
+
+    h3 {
+      font-size: 1.15rem;
+      font-weight: 700;
+    }
+  }
+
+  &__close {
+    width: 32px;
+    height: 32px;
+    border-radius: $radius-sm;
+    background: rgba(255, 255, 255, 0.05);
+    color: $text-muted;
+    font-size: 1.25rem;
+    @include flex-center;
+
+    &:hover {
+      color: $text-primary;
+      background: $glass-bg-hover;
+    }
+  }
+
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: $text-muted;
+    }
+
+    input,
+    textarea,
+    select {
+      padding: 0.75rem 1rem;
+      border-radius: $radius-md;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid $glass-border;
+      color: $text-primary;
+      font-size: 0.9rem;
+
+      &:focus {
+        border-color: rgba(124, 58, 237, 0.4);
+        box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+      }
+    }
+
+    textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+  }
+
+  &__error {
+    padding: 0.65rem 0.85rem;
+    border-radius: $radius-sm;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: #f87171;
+    font-size: 0.85rem;
+  }
+
+  &__actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+    margin-top: 0.5rem;
+  }
+}

@@ -1,0 +1,114 @@
+@use "../../styles/variables" as *;
+@use "../../styles/mixins" as *;
+
+.message-input {
+  padding: 0 1.25rem 1.25rem;
+  flex-shrink: 0;
+
+  &__bar {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border-radius: $radius-lg;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid $glass-border;
+    transition: $transition-fast;
+
+    &:focus-within {
+      border-color: rgba(124, 58, 237, 0.4);
+      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.08);
+    }
+  }
+
+  &__attach {
+    width: 40px;
+    height: 40px;
+    border-radius: $radius-md;
+    @include flex-center;
+    background: rgba(255, 255, 255, 0.05);
+    color: $text-muted;
+    flex-shrink: 0;
+    transition: $transition-fast;
+
+    &:hover {
+      color: $accent-green;
+      background: rgba(16, 185, 129, 0.1);
+    }
+  }
+
+  &__field {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+
+    input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: $text-primary;
+      font-size: 0.925rem;
+      padding: 0.5rem 0;
+      min-width: 0;
+
+      &::placeholder {
+        color: $text-dim;
+      }
+    }
+  }
+
+  &__actions {
+    display: flex;
+    gap: 0.15rem;
+
+    button {
+      width: 32px;
+      height: 32px;
+      border-radius: $radius-sm;
+      @include flex-center;
+      background: transparent;
+      color: $text-dim;
+      transition: $transition-fast;
+
+      &:hover {
+        color: $text-primary;
+        background: $glass-bg-hover;
+      }
+    }
+  }
+
+  &__voice {
+    width: 40px;
+    height: 40px;
+    border-radius: $radius-md;
+    @include flex-center;
+    background: transparent;
+    color: $text-muted;
+    flex-shrink: 0;
+    transition: $transition-fast;
+
+    &:hover {
+      color: $accent-blue-light;
+      background: rgba(37, 99, 235, 0.1);
+    }
+  }
+
+  &__send {
+    width: 40px;
+    height: 40px;
+    border-radius: $radius-md;
+    @include flex-center;
+    background: linear-gradient(135deg, $accent-purple, $accent-blue);
+    color: white;
+    flex-shrink: 0;
+    box-shadow: 0 4px 16px rgba(124, 58, 237, 0.35);
+    transition: $transition-fast;
+
+    &:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 20px rgba(124, 58, 237, 0.45);
+    }
+  }
+}
