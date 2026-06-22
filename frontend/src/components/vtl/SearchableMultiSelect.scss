@@ -1,0 +1,268 @@
+@use "../../styles/variables" as *;
+@use "../../styles/mixins" as *;
+
+.sms {
+  position: relative;
+  width: 100%;
+
+  &--disabled {
+    opacity: 0.55;
+    pointer-events: none;
+  }
+
+  &__control {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.45rem;
+    padding: 0.45rem 0.5rem 0.45rem 0.55rem;
+    min-height: 46px;
+    border-radius: $radius-md;
+    background: rgba(8, 10, 24, 0.6);
+    border: 1px solid $glass-border;
+    cursor: text;
+    transition: $transition-fast;
+  }
+
+  &--open &__control,
+  &__control:focus-within {
+    border-color: rgba(124, 58, 237, 0.5);
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+  }
+
+  &__control-inner {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  &__input-wrap {
+    flex: 1 1 140px;
+    min-width: 100px;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.25rem 0.15rem;
+
+    input {
+      flex: 1;
+      min-width: 0;
+      width: 100%;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: $text-primary;
+      font-size: 0.875rem;
+      padding: 0.2rem 0;
+
+      &::placeholder {
+        color: $text-dim;
+      }
+    }
+  }
+
+  &__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.22rem 0.45rem 0.22rem 0.28rem;
+    border-radius: 999px;
+    background: rgba(124, 58, 237, 0.2);
+    border: 1px solid rgba(124, 58, 237, 0.35);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: $text-primary;
+    max-width: 100%;
+    flex-shrink: 0;
+  }
+
+  &__chip-avatar {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    @include flex-center;
+    font-size: 0.55rem;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+  }
+
+  &__chip-label {
+    max-width: min(140px, 28vw);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__chip-remove {
+    display: flex;
+    padding: 0.12rem;
+    border-radius: 50%;
+    color: rgba(255, 255, 255, 0.55);
+    background: transparent;
+
+    &:hover {
+      color: white;
+      background: rgba(255, 255, 255, 0.12);
+    }
+  }
+
+  &__icon {
+    color: $accent-purple-light;
+    flex-shrink: 0;
+    opacity: 0.75;
+  }
+
+  &__toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    margin-top: 0.15rem;
+    border-radius: $radius-sm;
+    color: $text-dim;
+    background: rgba(255, 255, 255, 0.04);
+    flex-shrink: 0;
+    transition: $transition-fast;
+
+    &:hover {
+      color: $text-primary;
+      background: rgba(255, 255, 255, 0.08);
+    }
+  }
+
+  &__chevron--up {
+    transform: rotate(180deg);
+  }
+
+  &__dropdown {
+    overflow-y: auto;
+    border-radius: $radius-md;
+    background: #0a0d1c;
+    border: 1px solid rgba(124, 58, 237, 0.25);
+    box-shadow:
+      0 12px 40px rgba(0, 0, 0, 0.55),
+      0 0 0 1px rgba(255, 255, 255, 0.04);
+    padding: 0.35rem;
+
+    @include scrollbar;
+  }
+
+  &__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    text-align: center;
+    padding: 1.25rem 0.75rem;
+    color: $text-dim;
+
+    svg {
+      opacity: 0.45;
+    }
+
+    p {
+      font-size: 0.82rem;
+      line-height: 1.4;
+    }
+  }
+
+  &__option {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    width: 100%;
+    padding: 0.6rem 0.65rem;
+    border-radius: $radius-sm;
+    text-align: left;
+    background: transparent;
+    color: $text-primary;
+    transition: $transition-fast;
+
+    &:hover {
+      background: rgba(124, 58, 237, 0.12);
+
+      .sms__checkbox {
+        border-color: rgba(124, 58, 237, 0.5);
+        color: rgba(124, 58, 237, 0.8);
+      }
+    }
+  }
+
+  &__checkbox {
+    width: 18px;
+    height: 18px;
+    border-radius: 5px;
+    border: 1.5px solid rgba(255, 255, 255, 0.15);
+    @include flex-center;
+    flex-shrink: 0;
+    color: transparent;
+    background: rgba(255, 255, 255, 0.03);
+    transition: $transition-fast;
+  }
+
+  &__option:hover &__checkbox {
+    color: $accent-purple-light;
+  }
+
+  &__avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    @include flex-center;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+  }
+
+  &__option-text {
+    flex: 1;
+    min-width: 0;
+
+    strong {
+      display: block;
+      font-size: 0.84rem;
+      font-weight: 600;
+      margin-bottom: 0.05rem;
+    }
+
+    span {
+      display: block;
+      font-size: 0.72rem;
+      color: $text-dim;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  &__count {
+    display: block;
+    margin-top: 0.45rem;
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: $accent-purple-light;
+    opacity: 0.85;
+  }
+}
+
+@media (max-width: 640px) {
+  .sms__chip-label {
+    max-width: 100px;
+  }
+
+  .sms__input-wrap {
+    flex-basis: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 400px) {
+  .sms__chip-label {
+    max-width: 72px;
+  }
+}

@@ -83,6 +83,20 @@ export const REACTION_EMOJI = {
   CELEBRATE: "🎉",
 };
 
+export const REACTION_TYPES = Object.keys(REACTION_EMOJI);
+
+export function getMediaUrl(filePath) {
+  if (!filePath) return "";
+  if (filePath.startsWith("http")) return filePath;
+  const base = (import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api").replace(/\/api\/?$/, "");
+  return `${base}${filePath.startsWith("/") ? filePath : `/${filePath}`}`;
+}
+
+export function getFileName(filePath) {
+  if (!filePath) return "file";
+  return filePath.split("/").pop() || "file";
+}
+
 export const NOTIFICATION_ICONS = {
   MESSAGE: "message",
   MEETING: "meeting",

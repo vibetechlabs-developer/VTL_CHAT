@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "../pages/Auth/Login/Login";
+import ForgotPassword from "../pages/Auth/Forgot Password/ForgotPassword";
+import ResetPassword from "../pages/Auth/Reset Password/ResetPassword";
 import Signup from "../pages/Auth/Signup/Signup";
 import Dashboard from "../pages/Dashboard/Dashboard";
 import Teams from "../pages/Teams/Teams";
@@ -17,6 +19,8 @@ function AppRoutes() {
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/teams" element={<ProtectedRoute><Teams /></ProtectedRoute>} />
         <Route path="/channels" element={<ProtectedRoute><Channels /></ProtectedRoute>} />

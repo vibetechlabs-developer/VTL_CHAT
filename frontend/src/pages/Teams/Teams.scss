@@ -8,7 +8,7 @@
 
   &__grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
     gap: 1.25rem;
   }
 }
@@ -109,5 +109,213 @@
   &--sm {
     padding: 0.4rem 0.85rem;
     font-size: 0.75rem;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none !important;
+  }
+}
+
+.teams-invite {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: 0;
+
+  &__scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    padding-bottom: 0.75rem;
+    padding-right: 0.15rem;
+
+    @include scrollbar;
+  }
+
+  &__footer {
+    flex-shrink: 0;
+    margin: 0 -1.5rem;
+    padding: 0.85rem 1.5rem max(1rem, env(safe-area-inset-bottom));
+    border-top: 1px solid $glass-border;
+    background: rgba(8, 10, 24, 0.96);
+    backdrop-filter: blur(8px);
+  }
+
+  &__team {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 1rem 1.1rem;
+    border-radius: $radius-md;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.08), rgba(37, 99, 235, 0.06));
+    border: 1px solid rgba(124, 58, 237, 0.2);
+  }
+
+  &__team-info {
+    strong {
+      display: block;
+      font-size: 0.95rem;
+      margin-bottom: 0.2rem;
+    }
+
+    span {
+      font-size: 0.75rem;
+      color: $text-dim;
+    }
+  }
+
+  &__team-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: $radius-md;
+    @include flex-center;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: white;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  }
+
+  &__existing {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+
+  &__existing-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    max-height: 68px;
+    overflow-y: auto;
+    padding-right: 0.15rem;
+
+    @include scrollbar;
+  }
+
+  &__existing-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.6rem 0.25rem 0.3rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid $glass-border;
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: $text-muted;
+  }
+
+  &__existing-avatar {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    @include flex-center;
+    font-size: 0.55rem;
+    font-weight: 700;
+    color: white;
+    opacity: 0.85;
+  }
+
+  &__loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 2rem 1rem;
+    color: $text-dim;
+    font-size: 0.85rem;
+  }
+
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+
+  &__label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: $text-dim;
+  }
+
+  &__roles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+    gap: 0.6rem;
+  }
+
+  &__role {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55rem;
+    padding: 0.85rem;
+    border-radius: $radius-md;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid $glass-border;
+    text-align: left;
+    transition: $transition-fast;
+    color: $text-primary;
+
+    svg {
+      color: $text-dim;
+      flex-shrink: 0;
+      margin-top: 0.1rem;
+    }
+
+    strong {
+      display: block;
+      font-size: 0.85rem;
+      margin-bottom: 0.15rem;
+    }
+
+    span {
+      font-size: 0.7rem;
+      color: $text-dim;
+      line-height: 1.4;
+    }
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    &--active {
+      background: rgba(124, 58, 237, 0.1);
+      border-color: rgba(124, 58, 237, 0.35);
+
+      svg {
+        color: $accent-purple-light;
+      }
+
+      strong {
+        color: $accent-purple-light;
+      }
+    }
+  }
+}
+
+@media (max-width: 640px) {
+  .teams-invite {
+    &__footer {
+      margin: 0 -1rem;
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+
+    &__team {
+      padding: 0.85rem;
+    }
+
+    &__role {
+      padding: 0.75rem;
+    }
   }
 }

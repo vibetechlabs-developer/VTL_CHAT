@@ -128,6 +128,12 @@ export function WorkspaceProvider({ children }) {
     return res.data;
   };
 
+  const addTeamMember = async (data) => {
+    const res = await workspaceApi.addTeamMember(data);
+    await refreshAll();
+    return res.data;
+  };
+
   const postMessage = async (channelId, content) => {
     const res = await workspaceApi.sendMessage({ channel: channelId, content });
     setMessages((prev) => [...prev, res.data]);
@@ -150,8 +156,41 @@ export function WorkspaceProvider({ children }) {
     await refreshAll();
   };
 
+  const toggleReaction = async (messageId, reactionType) => {
+    const existing = reactions.find(
+      (r) =>
+        Number(r.message) === Number(messageId) &&
+        Number(r.user) === Number(profile?.id)
+    );
+
+    if (existing?.reaction_type === reactionType) {
+      await workspaceApi.removeReaction(existing.id);
+      setReactions((prev) => prev.filter((r) => r.id !== existing.id));
+      return null;
+    }
+
+    if (existing) {
+      const res = await workspaceApi.updateReaction(existing.id, {
+        reaction_type: reactionType,
+      });
+      setReactions((prev) => prev.map((r) => (r.id === existing.id ? res.data : r)));
+      return res.data;
+    }
+
+    const res = await workspaceApi.addReaction({
+      message: messageId,
+      reaction_type: reactionType,
+    });
+    setReactions((prev) => [...prev, res.data]);
+    return res.data;
+  };
+
+  const uploadMessageAttachment = async (messageId, file) => {
+    const res = await workspaceApi.uploadAttachment(messageId, file);
+    return res.data;
+  };
   const getTeamMemberCount = (teamId) =>
-    teamMembers.filter((m) => m.team === teamId).length;
+    teamMembers.filter((m) => Number(m.team) === Number(teamId)).length;
 
   const getChannelCountForTeam = (teamId) =>
     channels.filter((c) => c.team === teamId).length;
@@ -190,6 +229,10 @@ export function WorkspaceProvider({ children }) {
     joinMeeting,
     getTeamMemberCount,
     getChannelCountForTeam,
+    addTeamMember,
+    toggleReaction,
+    addReaction: toggleReaction,
+    uploadMessageAttachment,
   };
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;

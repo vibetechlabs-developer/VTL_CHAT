@@ -5,6 +5,44 @@
   padding: 0 1.25rem 1.25rem;
   flex-shrink: 0;
 
+  &__file-input {
+    display: none;
+  }
+
+  &__file-preview {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-bottom: 0.5rem;
+    padding: 0.45rem 0.65rem;
+    border-radius: $radius-md;
+    background: rgba(124, 58, 237, 0.1);
+    border: 1px solid rgba(124, 58, 237, 0.25);
+    font-size: 0.8rem;
+    color: $text-primary;
+
+    span {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    button {
+      display: flex;
+      padding: 0.15rem;
+      border-radius: 50%;
+      color: $text-dim;
+      background: transparent;
+
+      &:hover {
+        color: $text-primary;
+        background: rgba(255, 255, 255, 0.08);
+      }
+    }
+  }
+
   &__bar {
     display: flex;
     align-items: flex-end;
@@ -106,9 +144,15 @@
     box-shadow: 0 4px 16px rgba(124, 58, 237, 0.35);
     transition: $transition-fast;
 
-    &:hover {
+    &:hover:not(:disabled) {
       transform: scale(1.05);
       box-shadow: 0 6px 20px rgba(124, 58, 237, 0.45);
+    }
+
+    &:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
     }
   }
 }

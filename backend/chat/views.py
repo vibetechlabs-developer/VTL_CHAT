@@ -116,21 +116,24 @@ class MessageDetailView(APIView):
 
 class AttachmentListCreateView(APIView):
    def get(self, request):
-        attachments = Attachment.objects.filter(
-           message__sender=request.user
-         ).distinct()
-        serializer = AttachmentSerializer(attachments, many=True)
+        channel_id = request.query_params.get("channel")
+        qs = Attachment.objects.filter(
+            message__channel__team__members__user=request.user
+        ).distinct()
+        if channel_id:
+            qs = qs.filter(message__channel_id=channel_id)
+        serializer = AttachmentSerializer(qs, many=True)
         return Response(serializer.data)
 
    def post(self, request):
         message = Message.objects.filter(
             id=request.data.get("message"),
-            sender=request.user
-        ).first()
+            channel__team__members__user=request.user,
+        ).filter(sender=request.user).first()
 
         if not message:
             return Response(
-                {"error": "Message not found"},
+                {"error": "Message not found or you do not have permission"},
                 status=status.HTTP_404_NOT_FOUND
             )
 
@@ -210,10 +213,13 @@ class AttachmentDetailView(APIView):
 
 class ReactionListCreateView(APIView):
     def get(self, request):
-        reactions = Reaction.objects.filter(
-            user=request.user
-        )
-        serializer = ReactionSerializer(reactions, many=True)
+        channel_id = request.query_params.get("channel")
+        qs = Reaction.objects.filter(
+            message__channel__team__members__user=request.user
+        ).distinct()
+        if channel_id:
+            qs = qs.filter(message__channel_id=channel_id)
+        serializer = ReactionSerializer(qs, many=True)
         return Response(serializer.data)
 
     def post(self, request):
@@ -228,6 +234,20 @@ class ReactionListCreateView(APIView):
                 {"error": "Message not found"},
                 status=status.HTTP_404_NOT_FOUND
             )
+
+        reaction_type = request.data.get("reaction_type")
+        if not reaction_type:
+            return Response(
+                {"error": "reaction_type is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        existing = Reaction.objects.filter(user=request.user, message=message).first()
+        if existing:
+            existing.reaction_type = reaction_type
+            existing.save()
+            serializer = ReactionSerializer(existing)
+            return Response(serializer.data, status=status.HTTP_200_OK)
         
         serializer = ReactionSerializer(data=request.data)
         if serializer.is_valid():

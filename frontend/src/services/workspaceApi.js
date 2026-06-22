@@ -12,6 +12,7 @@ export const getTeams = () => api.get("/teams/");
 export const createTeam = (data) => api.post("/teams/", data);
 export const getTeamMembers = (teamId) =>
   api.get("/teams/team-members/", { params: teamId ? { team: teamId } : {} });
+export const addTeamMember = (data) => api.post("/teams/team-members/", data);
 
 export const getChannels = () => api.get("/teams/channels/");
 export const createChannel = (data) => api.post("/teams/channels/", data);
@@ -19,8 +20,22 @@ export const createChannel = (data) => api.post("/teams/channels/", data);
 export const getMessages = (channelId) =>
   api.get("/messages/", { params: channelId ? { channel: channelId } : {} });
 export const sendMessage = (data) => api.post("/messages/", data);
-export const getReactions = () => api.get("/messages/reactions/");
+export const getReactions = (channelId) =>
+  api.get("/messages/reactions/", { params: channelId ? { channel: channelId } : {} });
 export const addReaction = (data) => api.post("/messages/reactions/", data);
+export const updateReaction = (id, data) => api.put(`/messages/reactions/${id}/`, data);
+export const removeReaction = (id) => api.delete(`/messages/reactions/${id}/`);
+
+export const getAttachments = (channelId) =>
+  api.get("/messages/attachments/", { params: channelId ? { channel: channelId } : {} });
+export const uploadAttachment = (messageId, file) => {
+  const form = new FormData();
+  form.append("message", messageId);
+  form.append("file", file);
+  return api.post("/messages/attachments/", form, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+};
 
 export const getMeetings = () => api.get("/meetings/");
 export const createMeeting = (data) => api.post("/meetings/", data);

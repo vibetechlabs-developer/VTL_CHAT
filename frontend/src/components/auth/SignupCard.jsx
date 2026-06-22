@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { signupUser } from "../../services/authService";
+import { signupUser, googleLogin, storeAuthTokens } from "../../services/authService";
+import { useGoogleAuth } from "../../hooks/useGoogleAuth";
+import GoogleIcon from "./GoogleIcon";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 const SignupCard = () => {
@@ -16,8 +18,38 @@ const SignupCard = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const { username, email, password, confirmPassword } = formData;
+
+  const handleGoogleSuccess = useCallback(
+    async (payload) => {
+      setError("");
+      setGoogleLoading(true);
+      try {
+        const response = await googleLogin(payload);
+        storeAuthTokens(response.data);
+        navigate("/dashboard");
+      } catch (err) {
+        const apiError = err.response?.data?.error || err.response?.data?.detail;
+        setError(apiError || "Google sign-in failed");
+      } finally {
+        setGoogleLoading(false);
+      }
+    },
+    [navigate]
+  );
+
+  const handleGoogleError = useCallback((message) => {
+    if (message !== "popup_closed_by_user") {
+      setError(typeof message === "string" ? message : "Google sign-in failed");
+    }
+  }, []);
+
+  const { login: loginWithGoogle, isConfigured } = useGoogleAuth(
+    handleGoogleSuccess,
+    handleGoogleError
+  );
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -85,6 +117,8 @@ const SignupCard = () => {
     }
   };
 
+  const isBusy = loading || googleLoading;
+
   return (
     <div className="login-card liquid-glass">
       <h2>Create Account</h2>
@@ -99,7 +133,7 @@ const SignupCard = () => {
           placeholder="Username"
           value={username}
           onChange={handleChange}
-          disabled={loading}
+          disabled={isBusy}
         />
 
         <input
@@ -108,7 +142,7 @@ const SignupCard = () => {
           placeholder="Email Address"
           value={email}
           onChange={handleChange}
-          disabled={loading}
+          disabled={isBusy}
         />
 
         <div className="password-input-container">
@@ -118,13 +152,13 @@ const SignupCard = () => {
             placeholder="Password"
             value={password}
             onChange={handleChange}
-            disabled={loading}
+            disabled={isBusy}
           />
           <button
             type="button"
             className="password-toggle-btn"
             onClick={() => setShowPassword(!showPassword)}
-            disabled={loading}
+            disabled={isBusy}
           >
             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
@@ -137,13 +171,13 @@ const SignupCard = () => {
             placeholder="Confirm Password"
             value={confirmPassword}
             onChange={handleChange}
-            disabled={loading}
+            disabled={isBusy}
           />
           <button
             type="button"
             className="password-toggle-btn"
             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-            disabled={loading}
+            disabled={isBusy}
           >
             {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
@@ -152,7 +186,7 @@ const SignupCard = () => {
         <button
           type="submit"
           className="primary-btn flex-center-btn"
-          disabled={loading}
+          disabled={isBusy}
         >
           {loading ? (
             <>
@@ -164,6 +198,28 @@ const SignupCard = () => {
           )}
         </button>
       </form>
+
+      <div className="divider">OR</div>
+
+      <button
+        type="button"
+        className="google-btn flex-center-btn"
+        onClick={loginWithGoogle}
+        disabled={isBusy || !isConfigured}
+        title={!isConfigured ? "Set VITE_GOOGLE_CLIENT_ID to enable Google sign-in" : undefined}
+      >
+        {googleLoading ? (
+          <>
+            <Loader2 className="spinner" size={18} />
+            <span>Connecting...</span>
+          </>
+        ) : (
+          <>
+            <GoogleIcon />
+            <span>Continue with Google</span>
+          </>
+        )}
+      </button>
 
       <p className="signup-text">
         Already have an account?

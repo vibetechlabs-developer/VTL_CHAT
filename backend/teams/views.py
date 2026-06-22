@@ -159,7 +159,10 @@ class TeamMemberListCreateView(APIView):
                 )
             members = TeamMember.objects.filter(team_id=team_id)
         else:
-            members = TeamMember.objects.filter(user=request.user)
+            user_team_ids = TeamMember.objects.filter(
+                user=request.user
+            ).values_list("team_id", flat=True)
+            members = TeamMember.objects.filter(team_id__in=user_team_ids)
 
         serializer = TeamMemberSerializer(
             members,

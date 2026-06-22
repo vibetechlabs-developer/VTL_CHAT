@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { loginUser } from "../../services/authService";
+import { loginUser, googleLogin, storeAuthTokens } from "../../services/authService";
+import { useGoogleAuth } from "../../hooks/useGoogleAuth";
+import GoogleIcon from "./GoogleIcon";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 const LoginCard = () => {
@@ -12,16 +14,45 @@ const LoginCard = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
-  const { email, password } = formData; 
+  const { email, password } = formData;
+
+  const handleGoogleSuccess = useCallback(
+    async (payload) => {
+      setError("");
+      setGoogleLoading(true);
+      try {
+        const response = await googleLogin(payload);
+        storeAuthTokens(response.data);
+        navigate("/dashboard");
+      } catch (err) {
+        const apiError = err.response?.data?.error || err.response?.data?.detail;
+        setError(apiError || "Google sign-in failed");
+      } finally {
+        setGoogleLoading(false);
+      }
+    },
+    [navigate]
+  );
+
+  const handleGoogleError = useCallback((message) => {
+    if (message !== "popup_closed_by_user") {
+      setError(typeof message === "string" ? message : "Google sign-in failed");
+    }
+  }, []);
+
+  const { login: loginWithGoogle, isConfigured } = useGoogleAuth(
+    handleGoogleSuccess,
+    handleGoogleError
+  );
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const validateEmail = (emailStr) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailStr);
-  };
+  const validateEmail = (emailStr) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailStr);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -45,12 +76,7 @@ const LoginCard = () => {
     setLoading(true);
     try {
       const response = await loginUser({ email, password });
-      const { access, refresh } = response.data;
-      
-      
-      localStorage.setItem("access", access);
-      localStorage.setItem("refresh", refresh);
-    
+      storeAuthTokens(response.data);
       navigate("/dashboard");
     } catch (err) {
       const apiError = err.response?.data?.error || err.response?.data?.detail;
@@ -59,6 +85,8 @@ const LoginCard = () => {
       setLoading(false);
     }
   };
+
+  const isBusy = loading || googleLoading;
 
   return (
     <div className="login-card liquid-glass">
@@ -73,7 +101,7 @@ const LoginCard = () => {
           placeholder="Email Address"
           value={email}
           onChange={handleChange}
-          disabled={loading}
+          disabled={isBusy}
         />
 
         <div className="password-input-container">
@@ -83,22 +111,26 @@ const LoginCard = () => {
             placeholder="Password"
             value={password}
             onChange={handleChange}
-            disabled={loading}
+            disabled={isBusy}
           />
           <button
             type="button"
             className="password-toggle-btn"
             onClick={() => setShowPassword(!showPassword)}
-            disabled={loading}
+            disabled={isBusy}
           >
             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
         </div>
 
+        <div className="forgot-password-link">
+          <Link to="/forgot-password">Forgot password?</Link>
+        </div>
+
         <button
           type="submit"
           className="primary-btn flex-center-btn"
-          disabled={loading}
+          disabled={isBusy}
         >
           {loading ? (
             <>
@@ -111,16 +143,30 @@ const LoginCard = () => {
         </button>
       </form>
 
-      <div className="divider">
-        OR
-      </div>
+      <div className="divider">OR</div>
 
-      <button className="google-btn" disabled={loading}>
-        Continue with Google
+      <button
+        type="button"
+        className="google-btn flex-center-btn"
+        onClick={loginWithGoogle}
+        disabled={isBusy || !isConfigured}
+        title={!isConfigured ? "Set VITE_GOOGLE_CLIENT_ID to enable Google sign-in" : undefined}
+      >
+        {googleLoading ? (
+          <>
+            <Loader2 className="spinner" size={18} />
+            <span>Connecting...</span>
+          </>
+        ) : (
+          <>
+            <GoogleIcon />
+            <span>Continue with Google</span>
+          </>
+        )}
       </button>
 
       <p className="signup-text">
-        Don't have an account?
+        Don&apos;t have an account?
         <Link to="/signup">
           <span> Create Account</span>
         </Link>

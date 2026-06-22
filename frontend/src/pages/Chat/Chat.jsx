@@ -6,6 +6,7 @@ import MessageInput from "../../components/chat/MessageInput";
 import MemberPanel from "../../components/chat/MemberPanel";
 import Modal from "../../components/vtl/Modal";
 import { useWorkspace } from "../../context/WorkspaceContext";
+import * as workspaceApi from "../../services/workspaceApi";
 import { extractErrorMessage } from "../../utils/helpers";
 import "./Chat.scss";
 
@@ -26,13 +27,17 @@ export default function Chat() {
     fetchChannelMessages,
     postMessage,
     createChannel,
+    addReaction,
+    uploadMessageAttachment,
   } = useWorkspace();
 
   const [activeTeamId, setActiveTeamId] = useState(null);
   const [activeChannelId, setActiveChannelId] = useState(null);
   const [channelMessages, setChannelMessages] = useState([]);
+  const [channelAttachments, setChannelAttachments] = useState([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [reactingId, setReactingId] = useState(null);
   const [showCreateChannel, setShowCreateChannel] = useState(false);
   const [channelForm, setChannelForm] = useState({ name: "", description: "", team: "", channel_type: "PUBLIC" });
   const [formError, setFormError] = useState("");
@@ -54,8 +59,12 @@ export default function Chat() {
     if (!activeChannelId) return;
     setMessagesLoading(true);
     try {
-      const data = await fetchChannelMessages(activeChannelId);
-      setChannelMessages(data);
+      const [messagesRes, attachmentsRes] = await Promise.all([
+        fetchChannelMessages(activeChannelId),
+        workspaceApi.getAttachments(activeChannelId).then((r) => r.data).catch(() => []),
+      ]);
+      setChannelMessages(messagesRes);
+      setChannelAttachments(attachmentsRes);
     } catch (err) {
       console.error(extractErrorMessage(err));
     } finally {
@@ -78,16 +87,31 @@ export default function Chat() {
     [reactions, channelMessages]
   );
 
-  const handleSend = async (content) => {
+  const handleSend = async (content, file) => {
     if (!activeChannelId) return;
     setSending(true);
     try {
-      await postMessage(activeChannelId, content);
+      const text = content.trim() || (file ? `Shared ${file.name}` : "");
+      const msg = await postMessage(activeChannelId, text);
+      if (file) {
+        await uploadMessageAttachment(msg.id, file);
+      }
       await loadMessages();
     } catch (err) {
       console.error(extractErrorMessage(err));
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleReact = async (messageId, reactionType) => {
+    setReactingId(messageId);
+    try {
+      await addReaction(messageId, reactionType);
+    } catch (err) {
+      console.error(extractErrorMessage(err));
+    } finally {
+      setReactingId(null);
     }
   };
 
@@ -158,7 +182,10 @@ export default function Chat() {
             usersMap={usersMap}
             profile={profile}
             reactions={channelReactions}
+            attachments={channelAttachments}
             loading={messagesLoading}
+            onReact={handleReact}
+            reactingId={reactingId}
           />
           <MessageInput
             channelName={activeChannel?.name || "channel"}
