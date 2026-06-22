@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "../pages/Auth/Login/Login";
 import Signup from "../pages/Auth/Signup/Signup";
-import Dashboard from "../pages/Dashboard";
+import Dashboard from "../pages/Dashboard/Dashboard";
 import Teams from "../pages/Teams/Teams";
 import Channels from "../pages/Channels/Channels";
 import Chat from "../pages/Chat/Chat";
