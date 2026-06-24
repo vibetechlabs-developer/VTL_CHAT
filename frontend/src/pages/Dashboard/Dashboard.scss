@@ -1,0 +1,309 @@
+@use "../../styles/variables" as *;
+@use "../../styles/mixins" as *;
+
+.dash-hero {
+  @include glass-panel;
+  padding: 2.5rem;
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(124, 58, 237, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 30%, rgba(37, 99, 235, 0.1) 0%, transparent 45%),
+    $glass-bg;
+
+  &__content {
+    position: relative;
+    z-index: 1;
+    max-width: 560px;
+
+    h2 {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 0.5rem;
+    }
+
+    p {
+      color: $text-muted;
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+}
+
+.dash-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+}
+
+.dash-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dash-card {
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 1.5rem;
+
+    svg:first-child {
+      color: $accent-purple-light;
+    }
+
+    h4 {
+      flex: 1;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+  }
+
+  &__menu {
+    background: transparent;
+    color: $text-dim;
+    margin-left: auto;
+
+    &:hover { color: $text-primary; }
+  }
+}
+
+.dash-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  position: relative;
+  padding-left: 0.25rem;
+
+  &::before {
+    content: "";
+    position: absolute;
+    left: 15px;
+    top: 8px;
+    bottom: 8px;
+    width: 2px;
+    background: $glass-border;
+  }
+
+  &__item {
+    display: flex;
+    gap: 1rem;
+    position: relative;
+
+    p {
+      font-size: 0.875rem;
+      color: $text-muted;
+
+      strong { color: $text-primary; }
+    }
+
+    span {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.75rem;
+      color: $text-dim;
+      margin-top: 0.2rem;
+    }
+  }
+
+  &__icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    @include flex-center;
+    background: $bg-secondary;
+    border: 2px solid $glass-border;
+    flex-shrink: 0;
+    z-index: 1;
+
+    &--user { color: $accent-purple; border-color: $border-purple; }
+    &--meeting { color: $accent-blue; }
+    &--file { color: $accent-yellow; }
+    &--post { color: $accent-green; }
+  }
+}
+
+.dash-meetings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+
+  &__item {
+    padding: 1rem;
+    border-radius: $radius-md;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid $glass-border;
+    transition: $transition-fast;
+
+    &:hover {
+      background: $glass-bg-hover;
+      transform: translateY(-2px);
+    }
+
+    h5 {
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+    }
+  }
+
+  &__date {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: $accent-purple-light;
+    background: rgba(124, 58, 237, 0.1);
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    margin-right: 0.5rem;
+  }
+
+  &__time {
+    font-size: 0.75rem;
+    color: $text-dim;
+  }
+
+  &__footer {
+    @include flex-between;
+    margin-top: 0.85rem;
+  }
+
+  &__host {
+    font-size: 0.75rem;
+    color: $text-dim;
+  }
+}
+
+.dash-section {
+  h4 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+  }
+}
+
+.dash-chats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.dash-chat-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.dash-chat {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  position: relative;
+  cursor: pointer;
+
+  &__avatar {
+    position: relative;
+    width: 42px;
+    height: 42px;
+    border-radius: $radius-md;
+    @include flex-center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+  }
+
+  &__online {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: $accent-green;
+    border: 2px solid $bg-secondary;
+  }
+
+  &__body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__top {
+    @include flex-between;
+    margin-bottom: 0.15rem;
+
+    h6 { font-size: 0.875rem; font-weight: 600; }
+    span { font-size: 0.7rem; color: $text-dim; }
+  }
+
+  p {
+    font-size: 0.8rem;
+    color: $text-muted;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__badge {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: $accent-purple;
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 700;
+    @include flex-center;
+  }
+}
+
+.vtl-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.65rem 1.15rem;
+  border-radius: $radius-md;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: $transition-fast;
+
+  &--primary {
+    background: linear-gradient(135deg, $accent-purple, $accent-blue);
+    color: white;
+    box-shadow: 0 4px 16px rgba(124, 58, 237, 0.35);
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 24px rgba(124, 58, 237, 0.45);
+    }
+  }
+
+  &--ghost {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid $glass-border;
+    color: $text-primary;
+
+    &:hover {
+      background: $glass-bg-hover;
+      transform: translateY(-2px);
+    }
+  }
+
+  &--sm {
+    padding: 0.4rem 0.85rem;
+    font-size: 0.75rem;
+    background: linear-gradient(135deg, $accent-blue, #1d4ed8);
+    color: white;
+  }
+}

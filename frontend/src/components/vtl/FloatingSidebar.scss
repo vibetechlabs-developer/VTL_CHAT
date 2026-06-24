@@ -1,0 +1,222 @@
+@use "../../styles/variables" as *;
+@use "../../styles/mixins" as *;
+
+.floating-sidebar {
+  position: fixed;
+  left: 20px;
+  top: 20px;
+  bottom: 20px;
+  width: $sidebar-width;
+  z-index: $z-sidebar;
+  @include glass-panel;
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem;
+  box-shadow: $shadow-lg, $shadow-glow-purple;
+  transition: $transition-normal;
+
+  &--collapsed {
+    width: $sidebar-collapsed;
+    padding: 1rem 0.75rem;
+
+    .floating-sidebar__link-label,
+    .floating-sidebar__name,
+    .floating-sidebar__link-badge {
+      display: none;
+    }
+
+    .floating-sidebar__link {
+      justify-content: center;
+      padding: 0.75rem;
+    }
+
+    .floating-sidebar__logout span {
+      display: none;
+    }
+
+    .floating-sidebar__logout {
+      justify-content: center;
+    }
+  }
+
+  &__header {
+    margin-bottom: 1.5rem;
+  }
+
+  &__brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  &__logo {
+    width: 40px;
+    height: 40px;
+    border-radius: $radius-md;
+    background: linear-gradient(135deg, $accent-purple, $accent-blue);
+    @include flex-center;
+    color: white;
+    box-shadow: 0 4px 20px rgba(124, 58, 237, 0.4);
+    flex-shrink: 0;
+  }
+
+  &__name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: $text-primary;
+  }
+
+  &__nav {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    overflow-y: auto;
+    @include scrollbar;
+  }
+
+  &__link {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.7rem 0.85rem;
+    border-radius: $radius-md;
+    color: $text-muted;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: $transition-fast;
+    position: relative;
+    border: 1px solid transparent;
+
+    &:hover {
+      color: $text-primary;
+      background: $glass-bg-hover;
+    }
+
+    &--active {
+      color: $text-primary;
+      background: rgba(124, 58, 237, 0.1);
+      border-color: $border-purple;
+
+      .floating-sidebar__link-icon {
+        color: $accent-purple-light;
+      }
+    }
+
+    &--featured {
+      margin-top: 0.5rem;
+      margin-bottom: 0.25rem;
+      background: rgba(124, 58, 237, 0.06);
+      border-color: rgba(124, 58, 237, 0.12);
+
+      &.floating-sidebar__link--active {
+        background: rgba(124, 58, 237, 0.15);
+        box-shadow: 0 0 24px rgba(124, 58, 237, 0.15);
+      }
+    }
+  }
+
+  &__link-icon {
+    @include flex-center;
+    flex-shrink: 0;
+    transition: color 0.2s ease;
+  }
+
+  &__link-label {
+    flex: 1;
+    white-space: nowrap;
+  }
+
+  &__link-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.15rem 0.45rem;
+    border-radius: $radius-full;
+    background: rgba(16, 185, 129, 0.15);
+    color: $accent-green;
+  }
+
+  &__footer {
+    margin-top: auto;
+    padding-top: 1rem;
+    border-top: 1px solid $glass-border;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  &__logout {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.7rem 0.85rem;
+    border-radius: $radius-md;
+    background: transparent;
+    color: $text-muted;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: $transition-fast;
+    width: 100%;
+
+    &:hover {
+      color: $accent-red;
+      background: rgba(239, 68, 68, 0.08);
+    }
+  }
+
+  &__collapse {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid $glass-border;
+    color: $text-dim;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.5rem;
+    border-radius: $radius-sm;
+    transition: $transition-fast;
+
+    &:hover {
+      color: $text-primary;
+      background: $glass-bg-hover;
+    }
+
+    &--icon {
+      @include flex-center;
+      font-size: 0.85rem;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .floating-sidebar {
+    left: 12px;
+    top: 12px;
+    bottom: auto;
+    width: calc(100% - 24px);
+    max-height: 64px;
+    flex-direction: row;
+    padding: 0.75rem;
+
+    &__header,
+    &__footer {
+      display: none;
+    }
+
+    &__nav {
+      flex-direction: row;
+      overflow-x: auto;
+      gap: 0.25rem;
+    }
+
+    &__link-label,
+    &__link-badge {
+      display: none;
+    }
+
+    &__link {
+      padding: 0.6rem;
+    }
+  }
+}

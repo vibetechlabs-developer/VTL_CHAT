@@ -1,0 +1,21 @@
+.stats-card {
+  background: rgba(255,255,255,.05);
+
+  border: 1px solid rgba(255,255,255,.08);
+
+  border-radius: 20px;
+
+  padding: 25px;
+
+  backdrop-filter: blur(20px);
+}
+
+.stats-card h4 {
+  color: #9ca3af;
+}
+
+.stats-card h2 {
+  color: white;
+  font-size: 34px;
+  margin-top: 10px;
+}

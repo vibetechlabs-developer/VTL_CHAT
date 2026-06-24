@@ -1,0 +1,211 @@
+@use "./variables" as *;
+@use "./mixins" as *;
+
+/* ==========================================
+   RESET
+========================================== */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* ==========================================
+   BODY
+========================================== */
+
+body {
+  font-family: "Inter", sans-serif;
+
+  background: $bg-primary;
+  color: $text-primary;
+
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  overflow-x: hidden;
+
+  @include scrollbar;
+}
+
+/* ==========================================
+   LINKS
+========================================== */
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* ==========================================
+   BUTTONS
+========================================== */
+
+button {
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+}
+
+/* ==========================================
+   INPUTS
+========================================== */
+
+input,
+textarea,
+select {
+  font-family: inherit;
+  outline: none;
+}
+
+/* ==========================================
+   IMAGES
+========================================== */
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+/* ==========================================
+   CONTAINER
+========================================== */
+
+.container {
+  width: 100%;
+  max-width: 1440px;
+
+  margin: auto;
+
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+
+/* ==========================================
+   GLASS CLASS
+========================================== */
+
+.liquid-glass {
+  @include glass;
+
+  position: relative;
+  overflow: hidden;
+}
+
+/* ==========================================
+   COMMON BUTTON
+========================================== */
+
+.primary-btn {
+  background: linear-gradient(135deg, $accent-purple, $accent-blue);
+  color: white;
+  padding: 0.85rem 1.5rem;
+  border-radius: $radius-lg;
+  font-weight: 600;
+  transition: $transition-normal;
+  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.3);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(124, 58, 237, 0.4);
+  }
+}
+
+/* ==========================================
+   PAGE WRAPPER
+========================================== */
+
+.page-wrapper {
+  min-height: 100vh;
+}
+
+/* ==========================================
+   ALERT MESSAGES
+========================================== */
+
+.alert-message {
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  
+  &.error {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: #f87171;
+  }
+  
+  &.success {
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.2);
+    color: #4ade80;
+  }
+}
+
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ==========================================
+   VTL BUTTONS
+========================================== */
+
+.vtl-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.65rem 1.15rem;
+  border-radius: $radius-md;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: $transition-fast;
+
+  &--primary {
+    background: linear-gradient(135deg, $accent-purple, $accent-blue);
+    color: white;
+    box-shadow: 0 4px 16px rgba(124, 58, 237, 0.35);
+
+    &:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 24px rgba(124, 58, 237, 0.45);
+    }
+  }
+
+  &--ghost {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid $glass-border;
+    color: $text-primary;
+
+    &:hover:not(:disabled) {
+      background: $glass-bg-hover;
+      transform: translateY(-2px);
+    }
+  }
+
+  &--sm {
+    padding: 0.4rem 0.85rem;
+    font-size: 0.75rem;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+}

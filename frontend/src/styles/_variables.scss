@@ -1,0 +1,56 @@
+/* ==========================================
+   VTL CHAT — DESIGN TOKENS
+========================================== */
+
+$bg-primary: #050816;
+$bg-secondary: #0b1020;
+$bg-surface: #0b1020;
+$bg-elevated: #111827;
+
+$text-primary: #ffffff;
+$text-secondary: #e2e8f0;
+$text-muted: #94a3b8;
+$text-dim: #64748b;
+
+$accent-purple: #7c3aed;
+$accent-purple-light: #a78bfa;
+$accent-blue: #2563eb;
+$accent-blue-light: #60a5fa;
+$accent-green: #10b981;
+$accent-yellow: #f59e0b;
+$accent-red: #ef4444;
+$accent-pink: #ec4899;
+
+$glass-bg: rgba(255, 255, 255, 0.05);
+$glass-bg-hover: rgba(255, 255, 255, 0.08);
+$glass-border: rgba(255, 255, 255, 0.08);
+$glass-border-hover: rgba(255, 255, 255, 0.14);
+
+$border-light: rgba(255, 255, 255, 0.08);
+$border-medium: rgba(255, 255, 255, 0.12);
+$border-purple: rgba(124, 58, 237, 0.25);
+
+$radius-sm: 12px;
+$radius-md: 16px;
+$radius-lg: 24px;
+$radius-xl: 32px;
+$radius-full: 9999px;
+
+$shadow-sm: 0 4px 24px rgba(0, 0, 0, 0.2);
+$shadow-md: 0 8px 32px rgba(0, 0, 0, 0.3);
+$shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.4);
+$shadow-glow-purple: 0 0 40px rgba(124, 58, 237, 0.15);
+$shadow-glow-blue: 0 0 40px rgba(37, 99, 235, 0.12);
+
+$transition-fast: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+$transition-normal: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+$transition-slow: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+
+$sidebar-width: 248px;
+$sidebar-collapsed: 76px;
+$topbar-height: 72px;
+
+$z-sidebar: 200;
+$z-topbar: 150;
+$z-modal: 500;
+$z-toast: 1000;

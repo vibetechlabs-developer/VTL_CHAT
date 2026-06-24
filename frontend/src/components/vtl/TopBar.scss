@@ -1,0 +1,186 @@
+@use "../../styles/variables" as *;
+@use "../../styles/mixins" as *;
+
+.topbar {
+  @include glass-panel;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+  gap: 1.5rem;
+  flex-shrink: 0;
+
+  &__left {
+    min-width: 0;
+  }
+
+  &__titles {
+    h1 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: $text-primary;
+    }
+
+    p {
+      font-size: 0.85rem;
+      color: $text-muted;
+      margin-top: 0.15rem;
+    }
+  }
+
+  &__right {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+  }
+
+  &__search {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.55rem 1rem;
+    border-radius: $radius-md;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid $glass-border;
+    width: 260px;
+    transition: $transition-fast;
+
+    svg {
+      color: $text-dim;
+      flex-shrink: 0;
+    }
+
+    input {
+      background: transparent;
+      border: none;
+      color: $text-primary;
+      font-size: 0.85rem;
+      width: 100%;
+
+      &::placeholder {
+        color: $text-dim;
+      }
+    }
+
+    &:focus-within {
+      border-color: rgba(124, 58, 237, 0.4);
+      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+    }
+  }
+
+  &__action {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    border-radius: $radius-md;
+    @include flex-center;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid $glass-border;
+    color: $text-muted;
+    transition: $transition-fast;
+
+    &:hover {
+      color: $text-primary;
+      background: $glass-bg-hover;
+      border-color: $glass-border-hover;
+    }
+  }
+
+  &__action-badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: $radius-full;
+    background: $accent-purple;
+    color: white;
+    font-size: 0.6rem;
+    font-weight: 700;
+    @include flex-center;
+    box-shadow: 0 0 8px $accent-purple;
+  }
+
+  &__profile {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.35rem 0.75rem 0.35rem 0.35rem;
+    border-radius: $radius-md;
+    border: 1px solid $glass-border;
+    background: rgba(255, 255, 255, 0.03);
+    transition: $transition-fast;
+
+    &:hover {
+      background: $glass-bg-hover;
+      border-color: $glass-border-hover;
+    }
+  }
+
+  &__avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: $radius-sm;
+    background: linear-gradient(135deg, $accent-purple, $accent-blue);
+    @include flex-center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: white;
+  }
+
+  &__profile-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  &__profile-name {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: $text-primary;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+  }
+
+  &__profile-email {
+    font-size: 0.7rem;
+    color: $text-dim;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+  }
+
+  &__profile-chevron {
+    color: $text-dim;
+    flex-shrink: 0;
+  }
+}
+
+@media (max-width: 1024px) {
+  .topbar {
+    flex-wrap: wrap;
+
+    &__search {
+      width: 200px;
+    }
+
+    &__profile-info {
+      display: none;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .topbar {
+    &__search {
+      display: none;
+    }
+  }
+}

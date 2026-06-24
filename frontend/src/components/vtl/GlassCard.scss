@@ -1,0 +1,15 @@
+@use "../../styles/variables" as *;
+@use "../../styles/mixins" as *;
+
+.glass-card {
+  @include glass-panel;
+  transition: $transition-normal;
+
+  &--padded {
+    padding: 1.5rem;
+  }
+
+  &--hover {
+    @include glass-panel-hover;
+  }
+}

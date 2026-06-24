@@ -1,0 +1,89 @@
+@use "../../styles/variables" as *;
+@use "../../styles/mixins" as *;
+
+.channels-page {
+  &__toolbar {
+    margin-bottom: 0.5rem;
+  }
+
+  &__list {
+    overflow: hidden;
+  }
+}
+
+.channel-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid $glass-border;
+  transition: $transition-fast;
+  cursor: pointer;
+
+  &:last-child { border-bottom: none; }
+
+  &:hover {
+    background: $glass-bg-hover;
+  }
+
+  &__icon {
+    width: 40px;
+    height: 40px;
+    border-radius: $radius-md;
+    @include flex-center;
+    background: rgba(124, 58, 237, 0.08);
+    color: $accent-purple-light;
+    flex-shrink: 0;
+  }
+
+  &__info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__name {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    font-size: 0.925rem;
+    margin-bottom: 0.15rem;
+  }
+
+  &__unread {
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: $radius-full;
+    background: $accent-purple;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 700;
+    @include flex-center;
+  }
+
+  p {
+    font-size: 0.8rem;
+    color: $text-dim;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__members {
+    font-size: 0.8rem;
+    color: $text-muted;
+    flex-shrink: 0;
+  }
+
+  &__type {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: $text-dim;
+    padding: 0.15rem 0.5rem;
+    border-radius: $radius-full;
+    background: rgba(255, 255, 255, 0.04);
+    flex-shrink: 0;
+  }
+}

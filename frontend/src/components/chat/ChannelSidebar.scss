@@ -1,0 +1,268 @@
+@use "../../styles/variables" as *;
+@use "../../styles/mixins" as *;
+
+.channel-sidebar {
+  display: flex;
+  height: 100%;
+  border-radius: $radius-lg;
+  overflow: hidden;
+  border: 1px solid $glass-border;
+  background: rgba(11, 16, 32, 0.6);
+  backdrop-filter: blur(24px);
+
+  &__servers {
+    width: 68px;
+    background: rgba(5, 8, 22, 0.8);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.75rem 0;
+    gap: 0.5rem;
+    border-right: 1px solid $glass-border;
+  }
+
+  &__server {
+    width: 44px;
+    height: 44px;
+    border-radius: $radius-md;
+    @include flex-center;
+    font-weight: 800;
+    font-size: 1rem;
+    color: white;
+    transition: $transition-fast;
+    position: relative;
+
+    &:hover {
+      border-radius: $radius-sm;
+    }
+
+    &--active {
+      border-radius: $radius-sm;
+
+      &::before {
+        content: "";
+        position: absolute;
+        left: -12px;
+        width: 4px;
+        height: 24px;
+        background: white;
+        border-radius: 0 4px 4px 0;
+      }
+    }
+
+    &--add {
+      background: rgba(255, 255, 255, 0.05);
+      color: $accent-green;
+      border: 1px dashed rgba(16, 185, 129, 0.3);
+
+      &:hover {
+        background: rgba(16, 185, 129, 0.1);
+      }
+    }
+  }
+
+  &__panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    @include scrollbar;
+    overflow-y: auto;
+  }
+
+  &__workspace {
+    @include flex-between;
+    padding: 1rem 1rem 0.75rem;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: $text-primary;
+    background: transparent;
+    width: 100%;
+    border-bottom: 1px solid $glass-border;
+    transition: $transition-fast;
+
+    &:hover {
+      background: $glass-bg-hover;
+    }
+
+    svg {
+      color: $text-dim;
+    }
+  }
+
+  &__section {
+    padding: 0.75rem 0.5rem;
+  }
+
+  &__section-header {
+    @include flex-between;
+    padding: 0 0.5rem 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: $text-dim;
+
+    button {
+      background: transparent;
+      color: $text-dim;
+      @include flex-center;
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+
+      &:hover {
+        color: $text-primary;
+        background: $glass-bg-hover;
+      }
+    }
+  }
+
+  &__channel {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.45rem 0.65rem;
+    border-radius: $radius-sm;
+    color: $text-muted;
+    font-size: 0.875rem;
+    font-weight: 500;
+    background: transparent;
+    transition: $transition-fast;
+
+    &:hover {
+      color: $text-primary;
+      background: $glass-bg-hover;
+    }
+
+    &--active {
+      color: $text-primary;
+      background: rgba(124, 58, 237, 0.12);
+    }
+
+    &--voice {
+      color: $accent-green;
+
+      .channel-sidebar__channel-icon {
+        color: $accent-green;
+      }
+    }
+  }
+
+  &__channel-icon {
+    flex-shrink: 0;
+    opacity: 0.6;
+  }
+
+  &__unread {
+    margin-left: auto;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: $radius-full;
+    background: $accent-purple;
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 700;
+    @include flex-center;
+  }
+
+  &__dm {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+    padding: 0.4rem 0.65rem;
+    border-radius: $radius-sm;
+    color: $text-muted;
+    font-size: 0.85rem;
+    background: transparent;
+    transition: $transition-fast;
+
+    &:hover {
+      color: $text-primary;
+      background: $glass-bg-hover;
+    }
+  }
+
+  &__dm-avatar {
+    position: relative;
+    width: 28px;
+    height: 28px;
+    border-radius: $radius-sm;
+    @include flex-center;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+  }
+
+  &__online {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: $accent-green;
+    border: 2px solid $bg-secondary;
+  }
+
+  &__user {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.75rem;
+    background: rgba(0, 0, 0, 0.25);
+    border-top: 1px solid $glass-border;
+  }
+
+  &__user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: $radius-sm;
+    background: linear-gradient(135deg, $accent-purple, $accent-blue);
+    @include flex-center;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: white;
+  }
+
+  &__user-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  &__user-name {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: $text-primary;
+  }
+
+  &__user-status {
+    font-size: 0.7rem;
+    color: $accent-green;
+  }
+
+  &__user-lock {
+    color: $text-dim;
+  }
+
+  &__loading,
+  &__empty {
+    padding: 1rem;
+    font-size: 0.85rem;
+    color: $text-dim;
+    text-align: center;
+  }
+
+  &__loading {
+    @include flex-center;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
