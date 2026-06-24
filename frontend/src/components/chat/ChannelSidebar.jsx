@@ -1,4 +1,4 @@
-import { ChevronDown, Plus, Hash, Lock, Volume2, Loader2 } from "lucide-react";
+import { ChevronDown, Plus, Hash, Lock, Loader2 } from "lucide-react";
 import { getInitials, getAvatarColor } from "../../utils/helpers";
 import "./ChannelSidebar.scss";
 
@@ -15,7 +15,7 @@ export default function ChannelSidebar({
   loading,
   onCreateChannel,
 }) {
-  const textChannels = channels.filter((c) => c.channel_type !== "PRIVATE" || true);
+  const textChannels = channels.filter((c) => c.channel_type !== "PRIVATE" || c.team === activeTeamId);
   const activeTeam = teams.find((t) => t.id === activeTeamId) || teams[0];
 
   return (

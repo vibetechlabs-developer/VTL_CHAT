@@ -23,8 +23,7 @@ const navItems = [
   { to: "/profile", icon: User, label: "Profile" },
   { to: "/settings", icon: Settings, label: "Settings" },
 ];
-
-export default function FloatingSidebar({ collapsed, onToggle, onLogout, initials }) {
+export default function FloatingSidebar({ collapsed, onToggle, onLogout }) {
   return (
     <aside className={`floating-sidebar ${collapsed ? "floating-sidebar--collapsed" : ""}`}>
       <div className="floating-sidebar__header">

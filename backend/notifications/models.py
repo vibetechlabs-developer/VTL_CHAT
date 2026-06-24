@@ -38,5 +38,10 @@ class Notification(models.Model):
         auto_now_add=True
     )
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['recipient', '-created_at']),
+        ]
+
     def __str__(self):
         return self.title

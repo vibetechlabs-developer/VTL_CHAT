@@ -14,7 +14,6 @@ export default function Profile() {
     error,
     initials,
     handleLogout,
-    teams,
     channels,
     messages,
     meetings,

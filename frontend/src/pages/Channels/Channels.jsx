@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Hash, Lock, Volume2, Plus, Bell, BellOff } from "lucide-react";
+import { Hash, Lock, Plus } from "lucide-react";
 import AppLayout from "../../components/vtl/AppLayout";
 import GlassCard from "../../components/vtl/GlassCard";
 import EmptyState from "../../components/vtl/EmptyState";

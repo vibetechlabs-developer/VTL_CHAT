@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Plus,
   Users,
@@ -90,10 +90,10 @@ export default function Teams() {
     [availableUsers]
   );
 
-  useEffect(() => {
+  const filteredSelectedUserIds = useMemo(() => {
     const validIds = new Set(availableUsers.map((u) => Number(u.id)));
-    setSelectedUserIds((prev) => prev.filter((id) => validIds.has(Number(id))));
-  }, [availableUsers]);
+    return selectedUserIds.filter((id) => validIds.has(Number(id)));
+  }, [selectedUserIds, availableUsers]);
 
   const loadInviteMembers = async (teamId) => {
     setInviteMembersLoading(true);
@@ -150,7 +150,7 @@ export default function Teams() {
 
   const handleInvite = async (e) => {
     e.preventDefault();
-    if (selectedUserIds.length === 0) {
+    if (filteredSelectedUserIds.length === 0) {
       setInviteError("Please select at least one user to invite.");
       return;
     }
@@ -158,7 +158,7 @@ export default function Teams() {
     setInviteSubmitting(true);
     try {
       const results = await Promise.allSettled(
-        selectedUserIds.map((userId) =>
+        filteredSelectedUserIds.map((userId) =>
           addTeamMember({
             team: selectedTeam.id,
             user: userId,
@@ -362,7 +362,7 @@ export default function Teams() {
                   <span className="teams-invite__label">Add members</span>
                   <SearchableMultiSelect
                     options={inviteUserOptions}
-                    value={selectedUserIds}
+                    value={filteredSelectedUserIds}
                     onChange={setSelectedUserIds}
                     placeholder="Search by name or email..."
                     emptyMessage="No users match your search"
@@ -409,7 +409,7 @@ export default function Teams() {
               <button
                 type="submit"
                 className="vtl-btn vtl-btn--primary"
-                disabled={inviteSubmitting || selectedUserIds.length === 0}
+                disabled={inviteSubmitting || filteredSelectedUserIds.length === 0}
               >
                 {inviteSubmitting ? (
                   <>
@@ -419,9 +419,9 @@ export default function Teams() {
                 ) : (
                   <>
                     <UserPlus size={16} />
-                    {selectedUserIds.length > 1
-                      ? `Add ${selectedUserIds.length} Members`
-                      : selectedUserIds.length === 1
+                    {filteredSelectedUserIds.length > 1
+                      ? `Add ${filteredSelectedUserIds.length} Members`
+                      : filteredSelectedUserIds.length === 1
                         ? "Add 1 Member"
                         : "Add Members"}
                   </>

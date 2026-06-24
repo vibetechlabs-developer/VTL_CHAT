@@ -205,29 +205,27 @@ class TeamMemberListCreateView(APIView):
         if serializer.is_valid():
             serializer.save(user=target_user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 class TeamMemberDetailView(APIView):
-     def delete(self, request, team_pk, user_pk):
 
+    def delete(self, request, team_pk, user_pk):
         membership = get_object_or_404(
             TeamMember,
             team_id=team_pk,
             user_id=user_pk
         )
 
-        if membership.user != request.user:
+        is_admin = TeamMember.objects.filter(team=membership.team, user=request.user, role='ADMIN').exists()
+        is_creator = membership.team.created_by == request.user
+
+        if membership.user != request.user and not is_admin and not is_creator:
             return Response(
                 {"error": "Permission denied"},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
 
         membership.delete()
-
-        
-
         return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class ChannelListCreateView(APIView):
     def get(self, request):

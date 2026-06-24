@@ -1,4 +1,5 @@
 from django.db.models import Q
+from django.utils import timezone
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -137,33 +138,31 @@ class MeetingParticipantListCreateView(APIView):
         return Response(serializer.data)
 
     def post(self, request, meeting_id):
-
-        meeting = Meeting.objects.filter(
-                id=meeting_id,
-                host=request.user
-            ).first()
+        meeting = Meeting.objects.filter(id=meeting_id).filter(
+            Q(host=request.user) | Q(channel__team__members__user=request.user)
+        ).distinct().first()
 
         if not meeting:
-
             return Response(
-                {"error": "Meeting not found or you are not the host"},
+                {"error": "Meeting not found"},
                 status=status.HTTP_404_NOT_FOUND
             )
 
         user_id = request.data.get("user") or request.user.id
+
+        if int(user_id) != request.user.id and meeting.host != request.user:
+            return Response(
+                {"error": "Only the host can add other participants to this meeting."},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         if not meeting.channel.team.members.filter(user_id=user_id).exists():
             return Response(
                 {"error": "User is not a member of this team"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-
-        role = request.data.get(
-            "role",
-            "PARTICIPANT"
-        )
-
-        
+        role = request.data.get("role", "PARTICIPANT")
+        is_self = (int(user_id) == request.user.id)
 
         existing_participant = MeetingParticipant.objects.filter(
             meeting=meeting,
@@ -171,29 +170,29 @@ class MeetingParticipantListCreateView(APIView):
         ).first()
 
         if existing_participant:
-
-            return Response(
-                {
-                    "error":
-                    "User is already a participant of this meeting"
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            if existing_participant.is_present:
+                return Response(
+                    {"error": "User is already a participant of this meeting"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            existing_participant.is_present = True
+            existing_participant.joined_at = timezone.now()
+            existing_participant.save()
+            serializer = MeetingParticipantSerializer(existing_participant)
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
         participant = MeetingParticipant.objects.create(
             meeting=meeting,
             user_id=user_id,
-            role=role
+            role=role,
+            is_present=is_self,
+            joined_at=timezone.now() if is_self else None
         )
 
-        serializer = MeetingParticipantSerializer(
-            participant
-        )
+        serializer = MeetingParticipantSerializer(participant)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        return Response(
-            serializer.data,
-            status=status.HTTP_201_CREATED
-        )
+
 class MeetingParticipantDetailView(APIView):
 
     def get(

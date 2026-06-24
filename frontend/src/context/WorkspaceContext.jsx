@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import * as workspaceApi from "../services/workspaceApi";
@@ -51,9 +52,12 @@ export function WorkspaceProvider({ children }) {
     if (get(5)) setChannels(get(5));
     if (get(6)) setMeetings(get(6));
     if (get(7)) setNotifications(get(7));
-    if (get(8)) setMessages(get(8));
+    const rawMessages = get(8);
+    if (rawMessages) {
+      const messagesArray = Array.isArray(rawMessages) ? rawMessages : (rawMessages.results || []);
+      setMessages(messagesArray);
+    }
     if (get(9)) setReactions(get(9));
-
     if (!profileData && results[0].status === "rejected") {
       throw results[0].reason;
     }

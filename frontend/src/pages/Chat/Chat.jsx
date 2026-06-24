@@ -6,6 +6,7 @@ import MessageInput from "../../components/chat/MessageInput";
 import MemberPanel from "../../components/chat/MemberPanel";
 import Modal from "../../components/vtl/Modal";
 import { useWorkspace } from "../../context/WorkspaceContext";
+import { useChatSocket } from "../../hooks/useChatSocket";
 import * as workspaceApi from "../../services/workspaceApi";
 import { extractErrorMessage } from "../../utils/helpers";
 import "./Chat.scss";
@@ -35,6 +36,7 @@ export default function Chat() {
   const [activeChannelId, setActiveChannelId] = useState(null);
   const [channelMessages, setChannelMessages] = useState([]);
   const [channelAttachments, setChannelAttachments] = useState([]);
+  const [channelReactionsLocal, setChannelReactionsLocal] = useState([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [reactingId, setReactingId] = useState(null);
@@ -43,60 +45,124 @@ export default function Chat() {
   const [formError, setFormError] = useState("");
   const [formSubmitting, setFormSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (teams.length && !activeTeamId) setActiveTeamId(teams[0].id);
-  }, [teams, activeTeamId]);
+  const currentTeamId = activeTeamId || (teams.length ? teams[0].id : null);
+  const teamChannels = useMemo(() => {
+    return channels.filter((c) => c.team === currentTeamId);
+  }, [channels, currentTeamId]);
+  const currentChannelId = activeChannelId || (teamChannels.length ? teamChannels[0].id : null);
 
   useEffect(() => {
-    if (!activeTeamId) return;
-    const teamChannels = channels.filter((c) => c.team === activeTeamId);
-    if (teamChannels.length && !activeChannelId) {
-      setActiveChannelId(teamChannels[0].id);
-    }
-  }, [channels, activeTeamId, activeChannelId]);
+    let active = true;
+    const loadData = async () => {
+      if (!currentChannelId) return;
+      await Promise.resolve(); // Defer execution to prevent synchronous setState inside effect
+      if (!active) return;
+      setMessagesLoading(true);
+      try {
+        const [messagesRes, attachmentsRes, reactionsRes] = await Promise.all([
+          fetchChannelMessages(currentChannelId),
+          workspaceApi.getAttachments(currentChannelId).then((r) => r.data).catch(() => []),
+          workspaceApi.getReactions(currentChannelId).then((r) => r.data).catch(() => []),
+        ]);
+        if (!active) return;
+        const messagesList = Array.isArray(messagesRes) ? messagesRes : (messagesRes?.results || []);
+        setChannelMessages(messagesList);
+        setChannelAttachments(attachmentsRes);
+        setChannelReactionsLocal(reactionsRes);
+      } catch (err) {
+        console.error(extractErrorMessage(err));
+      } finally {
+        if (active) setMessagesLoading(false);
+      }
+    };
+    loadData();
+    return () => {
+      active = false;
+    };
+  }, [currentChannelId, fetchChannelMessages]);
 
-  const loadMessages = useCallback(async () => {
-    if (!activeChannelId) return;
-    setMessagesLoading(true);
-    try {
-      const [messagesRes, attachmentsRes] = await Promise.all([
-        fetchChannelMessages(activeChannelId),
-        workspaceApi.getAttachments(activeChannelId).then((r) => r.data).catch(() => []),
-      ]);
-      setChannelMessages(messagesRes);
-      setChannelAttachments(attachmentsRes);
-    } catch (err) {
-      console.error(extractErrorMessage(err));
-    } finally {
-      setMessagesLoading(false);
-    }
-  }, [activeChannelId, fetchChannelMessages]);
+  const handleSocketEvent = useCallback(
+    (payload) => {
+      if (!payload?.type) return;
 
-  useEffect(() => {
-    loadMessages();
-    const interval = setInterval(loadMessages, 5000);
-    return () => clearInterval(interval);
-  }, [loadMessages]);
+      if (payload.type === "message" && payload.payload) {
+        setChannelMessages((prev) => {
+          if (prev.some((m) => m.id === payload.payload.id)) return prev;
+          return [...prev, payload.payload];
+        });
+        return;
+      }
 
-  const activeChannel = channels.find((c) => c.id === activeChannelId);
-  const activeTeam = teams.find((t) => t.id === activeTeamId);
-  const teamMembersList = teamMembers.filter((m) => m.team === activeTeamId);
+      if (payload.type === "message_updated" && payload.payload) {
+        setChannelMessages((prev) =>
+          prev.map((m) => (m.id === payload.payload.id ? payload.payload : m))
+        );
+        return;
+      }
 
-  const channelReactions = useMemo(
-    () => reactions.filter((r) => channelMessages.some((m) => m.id === r.message)),
-    [reactions, channelMessages]
+      if (payload.type === "message_deleted" && payload.payload) {
+        setChannelMessages((prev) => prev.filter((m) => m.id !== payload.payload.id));
+        return;
+      }
+
+      if (payload.type === "attachment" && payload.payload) {
+        setChannelAttachments((prev) => {
+          if (prev.some((a) => a.id === payload.payload.id)) return prev;
+          return [...prev, payload.payload];
+        });
+        return;
+      }
+
+      if (payload.type === "reaction" && payload.payload) {
+        if (payload.action === "delete") {
+          setChannelReactionsLocal((prev) =>
+            prev.filter((r) => r.id !== payload.payload.id)
+          );
+          return;
+        }
+        setChannelReactionsLocal((prev) => {
+          const idx = prev.findIndex((r) => r.id === payload.payload.id);
+          if (idx >= 0) {
+            return prev.map((r) => (r.id === payload.payload.id ? payload.payload : r));
+          }
+          return [...prev, payload.payload];
+        });
+      }
+    },
+    []
   );
 
+  useChatSocket(currentChannelId, handleSocketEvent);
+
+  const activeChannel = channels.find((c) => c.id === currentChannelId);
+  const activeTeam = teams.find((t) => t.id === currentTeamId);
+  const teamMembersList = teamMembers.filter((m) => m.team === currentTeamId);
+
+  const channelReactions = useMemo(() => {
+    const messageIds = new Set(channelMessages.map((m) => m.id));
+    const merged = reactions.filter((r) => messageIds.has(r.message));
+    channelReactionsLocal.forEach((r) => {
+      if (!messageIds.has(r.message)) return;
+      const idx = merged.findIndex((x) => x.id === r.id);
+      if (idx >= 0) merged[idx] = r;
+      else merged.push(r);
+    });
+    return merged;
+  }, [reactions, channelReactionsLocal, channelMessages]);
+
   const handleSend = async (content, file) => {
-    if (!activeChannelId) return;
+    if (!currentChannelId) return;
     setSending(true);
     try {
       const text = content.trim() || (file ? `Shared ${file.name}` : "");
-      const msg = await postMessage(activeChannelId, text);
+      const msg = await postMessage(currentChannelId, text);
+      setChannelMessages((prev) => {
+        if (prev.some((m) => m.id === msg.id)) return prev;
+        return [...prev, msg];
+      });
       if (file) {
         await uploadMessageAttachment(msg.id, file);
       }
-      await loadMessages();
     } catch (err) {
       console.error(extractErrorMessage(err));
     } finally {
@@ -120,7 +186,7 @@ export default function Chat() {
     setFormError("");
     setFormSubmitting(true);
     try {
-      let teamId = channelForm.team || activeTeamId;
+      let teamId = channelForm.team || currentTeamId;
       if (!teamId && teams[0]) teamId = teams[0].id;
 
       if (!teamId) {
@@ -161,8 +227,8 @@ export default function Chat() {
           teams={teams}
           channels={channels}
           users={users}
-          activeTeamId={activeTeamId}
-          activeChannelId={activeChannelId}
+          activeTeamId={currentTeamId}
+          activeChannelId={currentChannelId}
           onTeamSelect={(id) => {
             setActiveTeamId(id);
             const first = channels.find((c) => c.team === id);
@@ -190,7 +256,7 @@ export default function Chat() {
           <MessageInput
             channelName={activeChannel?.name || "channel"}
             onSend={handleSend}
-            disabled={!activeChannelId}
+            disabled={!currentChannelId}
             sending={sending}
           />
         </div>
@@ -227,7 +293,7 @@ export default function Chat() {
           <label>
             Team
             <select
-              value={channelForm.team || activeTeamId || ""}
+              value={channelForm.team || currentTeamId || ""}
               onChange={(e) => setChannelForm({ ...channelForm, team: e.target.value })}
               required
             >

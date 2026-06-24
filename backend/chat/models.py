@@ -23,6 +23,11 @@ class Message(models.Model):
 
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['channel', 'created_at']),
+        ]
+
     def __str__(self):
         return f"{self.sender.username}: {self.content[:30]}"
 
