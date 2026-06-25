@@ -69,6 +69,10 @@
     border-radius: $radius-sm;
     transition: $transition-fast;
     cursor: pointer;
+    width: 100%;
+    text-align: left;
+    border: none;
+    background: transparent;
 
     &:hover {
       background: $glass-bg-hover;

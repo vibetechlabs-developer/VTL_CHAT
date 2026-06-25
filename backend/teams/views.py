@@ -54,7 +54,6 @@ class OrganizationDetailView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk):
-        # organization = self.get_object(pk)
         organization = Organization.objects.filter(
             pk=pk,
             created_by=request.user
@@ -205,6 +204,7 @@ class TeamMemberListCreateView(APIView):
         if serializer.is_valid():
             serializer.save(user=target_user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 class TeamMemberDetailView(APIView):
 
     def delete(self, request, team_pk, user_pk):
@@ -229,9 +229,16 @@ class TeamMemberDetailView(APIView):
 
 class ChannelListCreateView(APIView):
     def get(self, request):
-        channels = Channel.objects.filter(
-          team__members__user=request.user
+        # Return team channels the user is a member of, plus DM channels they're in
+        team_channels = Channel.objects.filter(
+            team__members__user=request.user,
+            channel_type__in=['PUBLIC', 'PRIVATE'],
         ).distinct()
+        dm_channels = Channel.objects.filter(
+            channel_type='DIRECT',
+            members=request.user,
+        ).distinct()
+        channels = (team_channels | dm_channels).distinct()
         serializer = ChannelSerializer(channels, many=True)
         return Response(serializer.data)
 
@@ -249,6 +256,7 @@ class ChannelListCreateView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
 class ChannelDetailView(APIView):
     def get_object(self, pk):
         try:
@@ -257,7 +265,6 @@ class ChannelDetailView(APIView):
             return None
 
     def get(self, request, pk):
-        # channel = self.get_object(pk)
         channel = Channel.objects.filter(
             pk=pk,
             team__members__user=request.user
@@ -268,7 +275,6 @@ class ChannelDetailView(APIView):
         return Response(serializer.data)
 
     def put(self, request, pk):
-        # channel = self.get_object(pk)
         channel = Channel.objects.filter(
             pk=pk,
             team__members__user=request.user
@@ -282,7 +288,6 @@ class ChannelDetailView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk):
-        # channel = self.get_object(pk)
         channel = Channel.objects.filter(
             pk=pk,
             team__members__user=request.user
@@ -291,3 +296,47 @@ class ChannelDetailView(APIView):
             return Response(status=status.HTTP_404_NOT_FOUND)
         channel.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class DirectChannelCreateView(APIView):
+    """Get or create a Direct Message channel between the current user and another user."""
+
+    def post(self, request):
+        target_user_id = request.data.get("user_id")
+        if not target_user_id:
+            return Response(
+                {"error": "user_id is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        target_user = get_object_or_404(User, id=target_user_id)
+
+        if target_user == request.user:
+            return Response(
+                {"error": "You cannot start a DM with yourself"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Check if a DM channel already exists with exactly these two members
+        existing = Channel.objects.filter(
+            channel_type='DIRECT',
+            members=request.user,
+        ).filter(
+            members=target_user,
+        ).first()
+
+        if existing:
+            serializer = ChannelSerializer(existing)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        # Create a new DM channel
+        dm_name = f"dm-{min(request.user.id, target_user.id)}-{max(request.user.id, target_user.id)}"
+        channel = Channel.objects.create(
+            name=dm_name,
+            channel_type='DIRECT',
+            created_by=request.user,
+            team=None,
+        )
+        channel.members.add(request.user, target_user)
+        serializer = ChannelSerializer(channel)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)

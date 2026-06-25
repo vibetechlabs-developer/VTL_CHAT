@@ -9,6 +9,7 @@ import {
   REACTION_TYPES,
   getMediaUrl,
   getFileName,
+  getChannelDisplayName,
 } from "../../utils/helpers";
 import "./MessageArea.scss";
 
@@ -22,10 +23,15 @@ export default function MessageArea({
   loading,
   onReact,
   reactingId,
+  onPin,
+  onToggleMembers,
 }) {
   const bottomRef = useRef(null);
   const [hoveredId, setHoveredId] = useState(null);
-  const channelName = channel?.name || "general";
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showSearchInput, setShowSearchInput] = useState(false);
+  const [showPinnedOnly, setShowPinnedOnly] = useState(false);
+  const channelName = getChannelDisplayName(channel, profile?.id, usersMap);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -52,30 +58,77 @@ export default function MessageArea({
     <div className="message-area">
       <header className="message-area__header">
         <div className="message-area__channel-info">
-          <Hash size={20} />
+          {channel?.channel_type === "DIRECT" ? (
+            <div
+              className="message-area__avatar message-area__avatar--dm"
+              style={{ background: getAvatarColor(channelName), width: 24, height: 24, fontSize: '0.65rem', marginBottom: 0 }}
+            >
+              {getInitials(channelName)}
+            </div>
+          ) : (
+            <Hash size={20} />
+          )}
           <h2>{channelName}</h2>
           {channel?.description && (
             <span className="message-area__topic">{channel.description}</span>
           )}
         </div>
         <div className="message-area__toolbar">
-          <button type="button" title="Search"><Search size={18} /></button>
-          <button type="button" title="Pinned"><Pin size={18} /></button>
-          <button type="button" title="Notifications"><Bell size={18} /></button>
-          <button type="button" title="Members"><Users size={18} /></button>
-          <button type="button" title="More"><MoreHorizontal size={18} /></button>
+          {showSearchInput && (
+            <input
+              type="text"
+              className="message-area__search-input"
+              placeholder="Search messages..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              autoFocus
+            />
+          )}
+          <button 
+            type="button" 
+            title="Search"
+            className={showSearchInput ? "active" : ""}
+            onClick={() => {
+              setShowSearchInput(!showSearchInput);
+              if (showSearchInput) setSearchQuery("");
+            }}
+          >
+            <Search size={18} />
+          </button>
+          <button 
+            type="button" 
+            title="Pinned"
+            className={showPinnedOnly ? "active" : ""}
+            onClick={() => setShowPinnedOnly(!showPinnedOnly)}
+          >
+            <Pin size={18} />
+          </button>
+          <button type="button" title="Notifications" onClick={() => alert("Notifications coming soon!")}><Bell size={18} /></button>
+          <button type="button" title="Members" onClick={onToggleMembers}><Users size={18} /></button>
+          <button type="button" title="More" onClick={() => alert("More options coming soon!")}><MoreHorizontal size={18} /></button>
         </div>
       </header>
 
       <div className="message-area__messages">
         <div className="message-area__welcome">
           <div className="message-area__welcome-icon">
-            <Hash size={32} />
+            {channel?.channel_type === "DIRECT" ? (
+              <div
+                className="message-area__avatar message-area__avatar--dm"
+                style={{ background: getAvatarColor(channelName), width: 64, height: 64, fontSize: '1.5rem', marginBottom: 0 }}
+              >
+                {getInitials(channelName)}
+              </div>
+            ) : (
+              <Hash size={32} />
+            )}
           </div>
-          <h3>Welcome to #{channelName}</h3>
+          <h3>{channel?.channel_type === "DIRECT" ? `Direct Message with ${channelName}` : `Welcome to #${channelName}`}</h3>
           <p>
             {channel?.description ||
-              `This is the start of the #${channelName} channel. Share updates and collaborate in real time.`}
+              (channel?.channel_type === "DIRECT"
+                ? `This is the start of your direct message history with ${channelName}.`
+                : `This is the start of the #${channelName} channel. Share updates and collaborate in real time.`)}
           </p>
         </div>
 
@@ -90,7 +143,16 @@ export default function MessageArea({
           <p className="message-area__empty">No messages yet. Start the conversation!</p>
         )}
 
-        {messages.map((msg, i) => {
+        {(() => {
+          let displayedMessages = messages;
+          if (showPinnedOnly) displayedMessages = displayedMessages.filter(m => m.is_pinned);
+          if (searchQuery) displayedMessages = displayedMessages.filter(m => m.content && m.content.toLowerCase().includes(searchQuery.toLowerCase()));
+
+          if (!loading && messages.length > 0 && displayedMessages.length === 0) {
+            return <p className="message-area__empty">No messages match your criteria.</p>;
+          }
+
+          return displayedMessages.map((msg, i) => {
           const sender = usersMap[msg.sender];
           const username = sender?.username || (msg.sender === profile?.id ? profile.username : "User");
           const isSelf = msg.sender === profile?.id;
@@ -106,7 +168,7 @@ export default function MessageArea({
               key={msg.id}
               className={`message-area__message ${isSelf ? "message-area__message--self" : ""} ${
                 prevSame ? "message-area__message--compact" : ""
-              } ${msgReactions.length > 0 ? "message-area__message--has-reactions" : ""}`}
+              } ${msgReactions.length > 0 ? "message-area__message--has-reactions" : ""} ${msg.isOptimistic ? "message-area__message--optimistic" : ""}`}
               onMouseEnter={() => setHoveredId(msg.id)}
               onMouseLeave={() => setHoveredId(null)}
             >
@@ -121,6 +183,15 @@ export default function MessageArea({
               <div className="message-area__bubble-wrap">
                 {hoveredId === msg.id && (
                   <div className="message-area__reaction-picker">
+                    <button
+                      type="button"
+                      className="message-area__reaction-pick"
+                      title={msg.is_pinned ? "Unpin message" : "Pin message"}
+                      onClick={() => onPin && onPin(msg.id)}
+                    >
+                      <Pin size={14} className={msg.is_pinned ? "pinned-active" : ""} />
+                    </button>
+                    <div className="message-area__reaction-picker-divider" />
                     {REACTION_TYPES.map((type) => {
                       const isActive = myReaction?.reaction_type === type;
                       return (
@@ -141,6 +212,11 @@ export default function MessageArea({
                 )}
 
                 <div className="message-area__bubble">
+                  {msg.is_pinned && (
+                    <div className="message-area__pin-indicator">
+                      <Pin size={12} /> Pinned
+                    </div>
+                  )}
                   {!prevSame && (
                     <div className="message-area__meta">
                       <span className="message-area__author">{isSelf ? "You" : username}</span>
@@ -212,7 +288,8 @@ export default function MessageArea({
               </div>
             </div>
           );
-        })}
+        });
+        })()}
         <div ref={bottomRef} />
       </div>
     </div>

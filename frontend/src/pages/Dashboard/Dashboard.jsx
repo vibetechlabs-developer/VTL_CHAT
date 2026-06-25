@@ -24,6 +24,7 @@ import {
   formatMeetingTime,
   getInitials,
   getAvatarColor,
+  getChannelDisplayName,
 } from "../../utils/helpers";
 import "./Dashboard.scss";
 
@@ -132,16 +133,18 @@ export default function Dashboard() {
       .map((msg) => {
         const channel = channels.find((c) => c.id === msg.channel);
         const sender = usersMap[msg.sender];
+        const displayName = getChannelDisplayName(channel, profile?.id, usersMap);
+        const displayPrefix = channel?.channel_type === "DIRECT" ? "" : "#";
         return {
-          name: channel?.name ? `#${channel.name}` : "Channel",
+          name: `${displayPrefix}${displayName}`,
           msg: msg.content,
           time: formatRelativeTime(msg.created_at),
-          initials: getInitials(sender?.username || "CH"),
-          color: getAvatarColor(channel?.name || "ch"),
+          initials: getInitials(sender?.username || displayName),
+          color: getAvatarColor(displayName),
           channelId: msg.channel,
         };
       });
-  }, [messages, channels, usersMap]);
+  }, [messages, channels, usersMap, profile?.id]);
 
   return (
     <AppLayout

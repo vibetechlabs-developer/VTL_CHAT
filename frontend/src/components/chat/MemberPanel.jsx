@@ -2,7 +2,7 @@ import { Crown, Shield, Search } from "lucide-react";
 import { getInitials, getAvatarColor } from "../../utils/helpers";
 import "./MemberPanel.scss";
 
-export default function MemberPanel({ members = [], usersMap = {}, profile, teamName }) {
+export default function MemberPanel({ members = [], usersMap = {}, profile, teamName, onDMSelect }) {
   const enriched = members.map((m) => ({
     ...m,
     user: usersMap[m.user] || { username: "User", id: m.user },
@@ -23,7 +23,7 @@ export default function MemberPanel({ members = [], usersMap = {}, profile, team
           <div className="member-panel__group">
             <span className="member-panel__group-label">Admins — {admins.length}</span>
             {admins.map((member) => (
-              <MemberRow key={member.id} member={member} profile={profile} badge="crown" />
+              <MemberRow key={member.id} member={member} profile={profile} badge="crown" onDMSelect={onDMSelect} />
             ))}
           </div>
         )}
@@ -39,6 +39,7 @@ export default function MemberPanel({ members = [], usersMap = {}, profile, team
                 member={member}
                 profile={profile}
                 badge={member.role === "ADMIN" ? "shield" : null}
+                onDMSelect={onDMSelect}
               />
             ))
           )}
@@ -48,12 +49,17 @@ export default function MemberPanel({ members = [], usersMap = {}, profile, team
   );
 }
 
-function MemberRow({ member, profile, badge }) {
+function MemberRow({ member, profile, badge, onDMSelect }) {
   const username = member.user?.username || "User";
   const isSelf = member.user?.id === profile?.id;
 
   return (
-    <div className={`member-panel__member ${isSelf ? "member-panel__member--self" : ""}`}>
+    <button 
+      className={`member-panel__member ${isSelf ? "member-panel__member--self" : ""}`}
+      onClick={() => {
+        if (!isSelf && onDMSelect) onDMSelect(member.user.id);
+      }}
+    >
       <div className="member-panel__avatar" style={{ background: getAvatarColor(username) }}>
         {getInitials(username)}
         <span className="member-panel__status member-panel__status--online" />
@@ -64,6 +70,6 @@ function MemberRow({ member, profile, badge }) {
       </div>
       {badge === "crown" && <Crown size={14} className="member-panel__badge member-panel__badge--gold" />}
       {badge === "shield" && <Shield size={14} className="member-panel__badge member-panel__badge--blue" />}
-    </div>
+    </button>
   );
 }

@@ -121,6 +121,12 @@ export function WorkspaceProvider({ children }) {
     return res.data;
   };
 
+  const createDirectMessageChannel = async (userId) => {
+    const res = await workspaceApi.createDirectChannel({ user_id: userId });
+    await refreshAll();
+    return res.data;
+  };
+
   const createMeeting = async (data) => {
     const res = await workspaceApi.createMeeting(data);
     setMeetings((prev) => [...prev, res.data]);
@@ -193,6 +199,12 @@ export function WorkspaceProvider({ children }) {
     const res = await workspaceApi.uploadAttachment(messageId, file);
     return res.data;
   };
+
+  const pinMessage = async (messageId) => {
+    const res = await workspaceApi.pinMessage(messageId);
+    return res.data;
+  };
+
   const getTeamMemberCount = (teamId) =>
     teamMembers.filter((m) => Number(m.team) === Number(teamId)).length;
 
@@ -225,9 +237,11 @@ export function WorkspaceProvider({ children }) {
     createOrganization,
     createTeam,
     createChannel,
+    createDirectMessageChannel,
     createMeeting,
     fetchChannelMessages,
     postMessage,
+    pinMessage,
     markNotificationRead,
     markAllNotificationsRead,
     joinMeeting,

@@ -1,5 +1,11 @@
 from django.urls import path
-from .views import TeamListCreateView, TeamDetailView, OrganizationListCreateView, OrganizationDetailView, ChannelListCreateView, ChannelDetailView,TeamMemberListCreateView, TeamMemberDetailView
+from .views import (
+    TeamListCreateView, TeamDetailView,
+    OrganizationListCreateView, OrganizationDetailView,
+    ChannelListCreateView, ChannelDetailView,
+    TeamMemberListCreateView, TeamMemberDetailView,
+    DirectChannelCreateView,
+)
 
 urlpatterns = [
     path('organizations/', OrganizationListCreateView.as_view()),
@@ -7,6 +13,7 @@ urlpatterns = [
 
     path('channels/', ChannelListCreateView.as_view()),
     path('channels/<int:pk>/', ChannelDetailView.as_view()),
+    path('channels/direct/', DirectChannelCreateView.as_view()),
 
     path('team-members/', TeamMemberListCreateView.as_view()),
     path('team-members/<int:team_pk>/<int:user_pk>/',

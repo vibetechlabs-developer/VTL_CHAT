@@ -16,10 +16,12 @@ export const addTeamMember = (data) => api.post("/teams/team-members/", data);
 
 export const getChannels = () => api.get("/teams/channels/");
 export const createChannel = (data) => api.post("/teams/channels/", data);
+export const createDirectChannel = (data) => api.post("/teams/channels/direct/", data);
 
 export const getMessages = (channelId) =>
   api.get("/messages/", { params: channelId ? { channel: channelId } : {} });
 export const sendMessage = (data) => api.post("/messages/", data);
+export const pinMessage = (messageId) => api.post(`/messages/${messageId}/pin/`);
 export const getReactions = (channelId) =>
   api.get("/messages/reactions/", { params: channelId ? { channel: channelId } : {} });
 export const addReaction = (data) => api.post("/messages/reactions/", data);

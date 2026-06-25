@@ -7,6 +7,17 @@ export function getInitials(name = "") {
   return name.substring(0, 2).toUpperCase();
 }
 
+export function getChannelDisplayName(channel, profileId, usersMap = {}) {
+  if (!channel) return "channel";
+  if (channel.channel_type === "DIRECT") {
+    if (!channel.members || channel.members.length === 0) return channel.name;
+    const otherId = channel.members.find((id) => Number(id) !== Number(profileId)) || profileId;
+    const otherUser = usersMap[otherId];
+    return otherUser ? otherUser.username : channel.name;
+  }
+  return channel.name || "general";
+}
+
 export function getAvatarColor(seed = "") {
   let hash = 0;
   for (let i = 0; i < seed.length; i++) {

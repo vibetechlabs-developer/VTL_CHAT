@@ -1,5 +1,6 @@
-import { Search, Bell, Video, ChevronDown } from "lucide-react";
-import { Link } from "react-router-dom";
+import { useState, useRef, useEffect } from "react";
+import { Search, Bell, Video, ChevronDown, User, Settings, LogOut } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import "./TopBar.scss";
 
 export default function TopBar({
@@ -13,7 +14,29 @@ export default function TopBar({
   email,
   showSearch = true,
   unreadCount = 0,
+  onLogout,
 }) {
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleLogout = () => {
+    setDropdownOpen(false);
+    if (onLogout) {
+      onLogout();
+    }
+  };
+
   return (
     <header className="topbar">
       <div className="topbar__left">
@@ -47,14 +70,34 @@ export default function TopBar({
           <Video size={18} />
         </Link>
 
-        <Link to="/profile" className="topbar__profile">
-          <div className="topbar__avatar">{initials}</div>
-          <div className="topbar__profile-info">
-            <span className="topbar__profile-name">{username}</span>
-            <span className="topbar__profile-email">{email}</span>
-          </div>
-          <ChevronDown size={14} className="topbar__profile-chevron" />
-        </Link>
+        <div className="topbar__profile-wrapper" ref={dropdownRef}>
+          <button 
+            className="topbar__profile" 
+            onClick={() => setDropdownOpen(!dropdownOpen)}
+          >
+            <div className="topbar__avatar">{initials}</div>
+            <div className="topbar__profile-info">
+              <span className="topbar__profile-name">{username}</span>
+              <span className="topbar__profile-email">{email}</span>
+            </div>
+            <ChevronDown size={14} className="topbar__profile-chevron" />
+          </button>
+          
+          {dropdownOpen && (
+            <div className="topbar__dropdown">
+              <Link to="/profile" className="topbar__dropdown-item" onClick={() => setDropdownOpen(false)}>
+                <User size={16} /> Profile
+              </Link>
+              <Link to="/settings" className="topbar__dropdown-item" onClick={() => setDropdownOpen(false)}>
+                <Settings size={16} /> Settings
+              </Link>
+              <div className="topbar__dropdown-divider"></div>
+              <button className="topbar__dropdown-item topbar__dropdown-item--danger" onClick={handleLogout}>
+                <LogOut size={16} /> Logout
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );

@@ -17,6 +17,7 @@
     border-bottom: 1px solid $glass-border;
     background: rgba(5, 8, 22, 0.5);
     flex-shrink: 0;
+    gap: 1rem;
   }
 
   &__channel-info {
@@ -24,6 +25,7 @@
     align-items: center;
     gap: 0.5rem;
     min-width: 0;
+    flex: 1;
 
     svg {
       color: $text-dim;
@@ -35,6 +37,8 @@
       font-weight: 700;
       color: $text-primary;
       white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
   }
 
@@ -55,20 +59,46 @@
 
   &__toolbar {
     display: flex;
-    gap: 0.25rem;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+
+    .message-area__search-input {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid $glass-border;
+      border-radius: $radius-sm;
+      color: $text-primary;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.8rem;
+      width: 150px;
+      transition: width 0.2s ease, border-color 0.2s ease;
+
+      &:focus {
+        outline: none;
+        border-color: rgba(124, 58, 237, 0.5);
+        width: 180px;
+      }
+    }
 
     button {
-      width: 34px;
-      height: 34px;
-      border-radius: $radius-sm;
-      @include flex-center;
       background: transparent;
+      border: none;
       color: $text-muted;
+      @include flex-center;
+      width: 32px;
+      height: 32px;
+      border-radius: $radius-sm;
+      cursor: pointer;
       transition: $transition-fast;
 
       &:hover {
         color: $text-primary;
         background: $glass-bg-hover;
+      }
+
+      &.active {
+        color: $accent-purple-light;
+        background: rgba(124, 58, 237, 0.15);
       }
     }
   }
@@ -178,6 +208,11 @@
     &--has-reactions {
       margin-bottom: 0.65rem;
     }
+
+    &--optimistic {
+      opacity: 0.6;
+      pointer-events: none;
+    }
   }
 
   &__bubble-wrap {
@@ -229,7 +264,7 @@
     color: $text-dim;
   }
 
-  &__pin {
+  &__pin-indicator {
     display: inline-flex;
     align-items: center;
     gap: 0.25rem;
@@ -239,6 +274,7 @@
     background: rgba(245, 158, 11, 0.1);
     padding: 0.1rem 0.4rem;
     border-radius: 4px;
+    margin-bottom: 0.25rem;
   }
 
   &__text {
@@ -319,6 +355,12 @@
     }
   }
 
+  &__reaction-picker-divider {
+    width: 1px;
+    background: rgba(255, 255, 255, 0.1);
+    margin: 0 0.25rem;
+  }
+
   @keyframes reaction-pop {
     from {
       opacity: 0;
@@ -342,6 +384,11 @@
     &:hover {
       background: rgba(124, 58, 237, 0.18);
       transform: scale(1.2);
+    }
+
+    .pinned-active {
+      color: $accent-yellow;
+      fill: $accent-yellow;
     }
 
     &--active {
