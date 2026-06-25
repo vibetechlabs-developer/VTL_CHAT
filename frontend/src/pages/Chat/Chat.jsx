@@ -8,7 +8,7 @@ import Modal from "../../components/vtl/Modal";
 import { useWorkspace } from "../../context/WorkspaceContext";
 import { useChatSocket } from "../../hooks/useChatSocket";
 import * as workspaceApi from "../../services/workspaceApi";
-import { extractErrorMessage } from "../../utils/helpers";
+import { extractErrorMessage, getChannelDisplayName } from "../../utils/helpers";
 import "./Chat.scss";
 
 export default function Chat() {
@@ -27,7 +27,9 @@ export default function Chat() {
     unreadNotificationCount,
     fetchChannelMessages,
     postMessage,
+    pinMessage,
     createChannel,
+    createDirectMessageChannel,
     addReaction,
     uploadMessageAttachment,
   } = useWorkspace();
@@ -41,6 +43,7 @@ export default function Chat() {
   const [sending, setSending] = useState(false);
   const [reactingId, setReactingId] = useState(null);
   const [showCreateChannel, setShowCreateChannel] = useState(false);
+  const [showMembers, setShowMembers] = useState(true);
   const [channelForm, setChannelForm] = useState({ name: "", description: "", team: "", channel_type: "PUBLIC" });
   const [formError, setFormError] = useState("");
   const [formSubmitting, setFormSubmitting] = useState(false);
@@ -153,18 +156,38 @@ export default function Chat() {
   const handleSend = async (content, file) => {
     if (!currentChannelId) return;
     setSending(true);
+    
+    const text = content.trim() || (file ? `Shared ${file.name}` : "");
+    const tempId = `temp-${Date.now()}`;
+    const optimisticMsg = {
+      id: tempId,
+      content: text,
+      channel: currentChannelId,
+      sender: profile?.id,
+      created_at: new Date().toISOString(),
+      is_pinned: false,
+      isOptimistic: true,
+    };
+    
+    setChannelMessages((prev) => [...prev, optimisticMsg]);
+
     try {
-      const text = content.trim() || (file ? `Shared ${file.name}` : "");
       const msg = await postMessage(currentChannelId, text);
+      
       setChannelMessages((prev) => {
-        if (prev.some((m) => m.id === msg.id)) return prev;
-        return [...prev, msg];
+        const hasRealMsg = prev.some((m) => m.id === msg.id);
+        if (hasRealMsg) {
+          return prev.filter((m) => m.id !== tempId);
+        }
+        return prev.map((m) => (m.id === tempId ? msg : m));
       });
+
       if (file) {
         await uploadMessageAttachment(msg.id, file);
       }
     } catch (err) {
       console.error(extractErrorMessage(err));
+      setChannelMessages((prev) => prev.filter((m) => m.id !== tempId));
     } finally {
       setSending(false);
     }
@@ -209,6 +232,23 @@ export default function Chat() {
     }
   };
 
+  const handleDMSelect = async (userId) => {
+    try {
+      const dmChannel = await createDirectMessageChannel(userId);
+      setActiveChannelId(dmChannel.id);
+    } catch (err) {
+      console.error(extractErrorMessage(err));
+    }
+  };
+
+  const handlePin = async (messageId) => {
+    try {
+      await pinMessage(messageId);
+    } catch (err) {
+      console.error(extractErrorMessage(err));
+    }
+  };
+
   return (
     <AppLayout
       title="Chat"
@@ -235,6 +275,7 @@ export default function Chat() {
             setActiveChannelId(first?.id || null);
           }}
           onChannelSelect={setActiveChannelId}
+          onDMSelect={handleDMSelect}
           profile={profile}
           initials={initials}
           loading={loading}
@@ -252,21 +293,26 @@ export default function Chat() {
             loading={messagesLoading}
             onReact={handleReact}
             reactingId={reactingId}
+            onPin={handlePin}
+            onToggleMembers={() => setShowMembers(!showMembers)}
           />
           <MessageInput
-            channelName={activeChannel?.name || "channel"}
+            channelName={getChannelDisplayName(activeChannel, profile?.id, usersMap)}
             onSend={handleSend}
             disabled={!currentChannelId}
             sending={sending}
           />
         </div>
 
-        <MemberPanel
-          members={teamMembersList}
-          usersMap={usersMap}
-          profile={profile}
-          teamName={activeTeam?.name}
-        />
+        {showMembers && (
+          <MemberPanel
+            members={teamMembersList}
+            usersMap={usersMap}
+            profile={profile}
+            teamName={activeTeam?.name}
+            onDMSelect={handleDMSelect}
+          />
+        )}
       </div>
 
       <Modal open={showCreateChannel} onClose={() => setShowCreateChannel(false)} title="Create Channel">

@@ -65,6 +65,7 @@ export default function AppLayout({
           username={profile?.username}
           email={profile?.email}
           unreadCount={unreadNotificationCount}
+          onLogout={onLogout}
         />
         <div className={`app-layout__content ${fullBleed ? "app-layout__content--full" : ""}`}>
           {children}

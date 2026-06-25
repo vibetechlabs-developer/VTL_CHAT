@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import MessageListCreateView, MessageDetailView, AttachmentListCreateView, ReactionListCreateView, ReactionDetailView, AttachmentDetailView
+from .views import MessageListCreateView, MessageDetailView, MessagePinView, AttachmentListCreateView, ReactionListCreateView, ReactionDetailView, AttachmentDetailView
 urlpatterns = [
 
     path(
@@ -10,6 +10,11 @@ urlpatterns = [
     path(
         "<int:pk>/",
         MessageDetailView.as_view()
+    ),
+
+    path(
+        "<int:pk>/pin/",
+        MessagePinView.as_view()
     ),
 
     path(

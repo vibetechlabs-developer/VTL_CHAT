@@ -102,6 +102,7 @@ class Channel(models.Model):
     CHANNEL_TYPES = (
         ('PUBLIC', 'Public'),
         ('PRIVATE', 'Private'),
+        ('DIRECT', 'Direct Message'),
     )
 
     name = models.CharField(max_length=100)
@@ -111,7 +112,9 @@ class Channel(models.Model):
     team = models.ForeignKey(
         Team,
         on_delete=models.CASCADE,
-        related_name='channels'
+        related_name='channels',
+        null=True,
+        blank=True,
     )
 
     created_by = models.ForeignKey(
@@ -124,6 +127,13 @@ class Channel(models.Model):
         max_length=20,
         choices=CHANNEL_TYPES,
         default='PUBLIC'
+    )
+
+    # For DIRECT channels: participants of the DM
+    members = models.ManyToManyField(
+        User,
+        related_name='direct_channels',
+        blank=True,
     )
 
     created_at = models.DateTimeField(auto_now_add=True)

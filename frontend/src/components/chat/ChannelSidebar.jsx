@@ -10,13 +10,22 @@ export default function ChannelSidebar({
   activeChannelId,
   onTeamSelect,
   onChannelSelect,
+  onDMSelect,
   profile,
   initials,
   loading,
   onCreateChannel,
 }) {
-  const textChannels = channels.filter((c) => c.channel_type !== "PRIVATE" || c.team === activeTeamId);
+  const textChannels = channels.filter((c) => c.channel_type !== "PRIVATE" && c.channel_type !== "DIRECT" && c.team === activeTeamId);
+  const dmChannels = channels.filter((c) => c.channel_type === "DIRECT");
   const activeTeam = teams.find((t) => t.id === activeTeamId) || teams[0];
+  
+  const getDMName = (channel) => {
+    if (!channel.members || channel.members.length === 0) return channel.name;
+    const otherId = channel.members.find(id => id !== profile?.id) || profile?.id;
+    const otherUser = users.find(u => u.id === otherId);
+    return otherUser ? otherUser.username : channel.name;
+  };
 
   return (
     <aside className="channel-sidebar">
@@ -59,7 +68,6 @@ export default function ChannelSidebar({
                 <p className="channel-sidebar__empty">No channels yet</p>
               ) : (
                 textChannels
-                  .filter((c) => !activeTeamId || c.team === activeTeamId)
                   .map((channel) => (
                     <button
                       key={channel.id}
@@ -81,10 +89,44 @@ export default function ChannelSidebar({
 
             <div className="channel-sidebar__section">
               <div className="channel-sidebar__section-header">
+                <span>Direct Messages</span>
+              </div>
+              {dmChannels.length === 0 ? (
+                <p className="channel-sidebar__empty">No messages yet</p>
+              ) : (
+                dmChannels.map((channel) => {
+                  const dmName = getDMName(channel);
+                  return (
+                    <button
+                      key={channel.id}
+                      className={`channel-sidebar__dm ${
+                        activeChannelId === channel.id ? "channel-sidebar__dm--active" : ""
+                      }`}
+                      onClick={() => onChannelSelect(channel.id)}
+                    >
+                      <div
+                        className="channel-sidebar__dm-avatar"
+                        style={{ background: getAvatarColor(dmName) }}
+                      >
+                        {getInitials(dmName)}
+                      </div>
+                      <span>{dmName}</span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+
+            <div className="channel-sidebar__section">
+              <div className="channel-sidebar__section-header">
                 <span>Team Members</span>
               </div>
               {users.slice(0, 6).map((user) => (
-                <button key={user.id} className="channel-sidebar__dm">
+                <button 
+                  key={user.id} 
+                  className="channel-sidebar__dm"
+                  onClick={() => onDMSelect && onDMSelect(user.id)}
+                >
                   <div
                     className="channel-sidebar__dm-avatar"
                     style={{ background: getAvatarColor(user.username) }}

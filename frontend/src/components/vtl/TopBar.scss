@@ -161,6 +161,61 @@
     color: $text-dim;
     flex-shrink: 0;
   }
+
+  &__profile-wrapper {
+    position: relative;
+  }
+
+  &__dropdown {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    width: 200px;
+    background: $glass-bg;
+    border: 1px solid $glass-border;
+    border-radius: $radius-md;
+    box-shadow: $shadow-lg;
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+  }
+
+  &__dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.65rem 0.85rem;
+    color: $text-primary;
+    text-decoration: none;
+    border-radius: $radius-sm;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: $transition-fast;
+    border: none;
+    background: transparent;
+    text-align: left;
+    width: 100%;
+    cursor: pointer;
+
+    &:hover {
+      background: $glass-bg-hover;
+    }
+
+    &--danger {
+      color: $accent-red;
+      
+      &:hover {
+        background: rgba(239, 68, 68, 0.1);
+      }
+    }
+  }
+
+  &__dropdown-divider {
+    height: 1px;
+    background: $glass-border;
+    margin: 0.25rem 0;
+  }
 }
 
 @media (max-width: 1024px) {

@@ -83,13 +83,14 @@ class ChannelSerializer(serializers.ModelSerializer):
             "team",
             "created_by",
             "created_at",
-            "channel_type"
+            "channel_type",
+            "members",
         ]
 
         read_only_fields = [
             "created_by",
         ]
-        
+
     def validate_name(self, value):
 
         if len(value.strip()) < 3:
@@ -97,4 +98,4 @@ class ChannelSerializer(serializers.ModelSerializer):
                 "Channel name too short"
             )
 
-        return value
+        return value
