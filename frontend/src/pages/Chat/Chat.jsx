@@ -27,6 +27,8 @@ export default function Chat() {
     unreadNotificationCount,
     fetchChannelMessages,
     postMessage,
+    editMessage,
+    deleteMessage,
     pinMessage,
     createChannel,
     createDirectMessageChannel,
@@ -157,11 +159,11 @@ export default function Chat() {
     if (!currentChannelId) return;
     setSending(true);
     
-    const text = content.trim() || (file ? `Shared ${file.name}` : "");
+    const text = content.trim();
     const tempId = `temp-${Date.now()}`;
     const optimisticMsg = {
       id: tempId,
-      content: text,
+      content: text || (file ? `📎 ${file.name}` : ""),
       channel: currentChannelId,
       sender: profile?.id,
       created_at: new Date().toISOString(),
@@ -183,7 +185,13 @@ export default function Chat() {
       });
 
       if (file) {
-        await uploadMessageAttachment(msg.id, file);
+        const att = await uploadMessageAttachment(msg.id, file);
+        if (att) {
+          setChannelAttachments((prev) => {
+            if (prev.some((a) => a.id === att.id)) return prev;
+            return [...prev, att];
+          });
+        }
       }
     } catch (err) {
       console.error(extractErrorMessage(err));
@@ -249,6 +257,22 @@ export default function Chat() {
     }
   };
 
+  const handleEditMessage = async (messageId, newContent) => {
+    try {
+      await editMessage(messageId, newContent);
+    } catch (err) {
+      console.error(extractErrorMessage(err));
+    }
+  };
+
+  const handleDeleteMessage = async (messageId) => {
+    try {
+      await deleteMessage(messageId);
+    } catch (err) {
+      console.error(extractErrorMessage(err));
+    }
+  };
+
   return (
     <AppLayout
       title="Chat"
@@ -294,6 +318,8 @@ export default function Chat() {
             onReact={handleReact}
             reactingId={reactingId}
             onPin={handlePin}
+            onEditMessage={handleEditMessage}
+            onDeleteMessage={handleDeleteMessage}
             onToggleMembers={() => setShowMembers(!showMembers)}
           />
           <MessageInput

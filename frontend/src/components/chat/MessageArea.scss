@@ -386,6 +386,15 @@
       transform: scale(1.2);
     }
 
+    svg {
+      color: $text-muted;
+      transition: color 0.15s ease;
+    }
+
+    &:hover svg {
+      color: $text-primary;
+    }
+
     .pinned-active {
       color: $accent-yellow;
       fill: $accent-yellow;
@@ -398,6 +407,15 @@
       &:hover {
         background: rgba(239, 68, 68, 0.2);
         box-shadow: inset 0 0 0 2px rgba(239, 68, 68, 0.45);
+      }
+    }
+
+    &--danger {
+      &:hover {
+        background: rgba(239, 68, 68, 0.18) !important;
+        svg {
+          color: #f87171 !important;
+        }
       }
     }
 
@@ -509,6 +527,43 @@
 
       &:nth-child(1) { animation-delay: -0.32s; }
       &:nth-child(2) { animation-delay: -0.16s; }
+    }
+  }
+
+  &__edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+    margin-top: 0.25rem;
+  }
+
+  &__edit-input {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid $glass-border;
+    border-radius: $radius-md;
+    color: $text-primary;
+    padding: 0.5rem;
+    font-size: 0.9rem;
+    resize: vertical;
+    width: 100%;
+    min-height: 50px;
+
+    &:focus {
+      outline: none;
+      border-color: rgba(124, 58, 237, 0.5);
+    }
+  }
+
+  &__edit-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+
+    .vtl-btn--xs {
+      padding: 0.2rem 0.5rem;
+      font-size: 0.75rem;
+      height: auto;
     }
   }
 }

@@ -5,7 +5,7 @@ from django.http import Http404
 from django.db.models import Q
 from teams.models import Channel
 
-from .models import Message, Attachment, Reaction
+from .models import Message, Attachment, Reaction, ChannelReadReceipt
 from .serializers import MessageSerializer, AttachmentSerializer, ReactionSerializer
 from .utils import broadcast_to_channel
 
@@ -29,17 +29,22 @@ class MessageListCreateView(APIView):
 
     def get(self, request):
         channel_id = request.query_params.get("channel")
-        if channel_id:
+        parent_id = request.query_params.get("parent")
+        
+        if parent_id:
+            messages = Message.objects.filter(parent_id=parent_id).order_by("created_at")
+        elif channel_id:
             if not _user_can_access_channel(request.user, channel_id):
                 return Response(
                     {"error": "Channel not found or you do not have permission"},
                     status=status.HTTP_404_NOT_FOUND,
                 )
-            messages = Message.objects.filter(channel_id=channel_id).order_by("created_at")
+            messages = Message.objects.filter(channel_id=channel_id, parent__isnull=True).order_by("created_at")
         else:
             messages = Message.objects.filter(
                 Q(channel__team__members__user=request.user) |
-                Q(channel__channel_type='DIRECT', channel__members=request.user)
+                Q(channel__channel_type='DIRECT', channel__members=request.user),
+                parent__isnull=True
             ).distinct().order_by("-created_at")
 
         from rest_framework.pagination import PageNumberPagination
@@ -165,7 +170,7 @@ class AttachmentListCreateView(APIView):
         ).distinct()
         if channel_id:
             qs = qs.filter(message__channel_id=channel_id)
-        serializer = AttachmentSerializer(qs, many=True)
+        serializer = AttachmentSerializer(qs, many=True, context={'request': request})
         return Response(serializer.data)
 
     def post(self, request):
@@ -177,14 +182,15 @@ class AttachmentListCreateView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        serializer = AttachmentSerializer(data=request.data)
+        serializer = AttachmentSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
-            serializer.save()
+            instance = serializer.save()
+            full_serializer = AttachmentSerializer(instance, context={'request': request})
             broadcast_to_channel(
                 message.channel_id,
-                {"type": "attachment", "payload": serializer.data},
+                {"type": "attachment", "payload": full_serializer.data},
             )
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(full_serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -208,7 +214,7 @@ class AttachmentDetailView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        serializer = AttachmentSerializer(attachment)
+        serializer = AttachmentSerializer(attachment, context={'request': request})
         return Response(serializer.data)
 
     def delete(self, request, pk):
@@ -343,3 +349,17 @@ class ReactionDetailView(APIView):
             _broadcast_reaction(reaction.message.channel_id, "upsert", serializer.data)
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class ReadReceiptView(APIView):
+    def post(self, request):
+        channel_id = request.data.get("channel")
+        message_id = request.data.get("message")
+        if not channel_id or not message_id:
+            return Response({"error": "Missing channel or message"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        ChannelReadReceipt.objects.update_or_create(
+            user=request.user,
+            channel_id=channel_id,
+            defaults={'last_read_message_id': message_id}
+        )
+        return Response({"status": "success"}, status=status.HTTP_200_OK)

@@ -21,6 +21,8 @@ export const createDirectChannel = (data) => api.post("/teams/channels/direct/",
 export const getMessages = (channelId) =>
   api.get("/messages/", { params: channelId ? { channel: channelId } : {} });
 export const sendMessage = (data) => api.post("/messages/", data);
+export const editMessage = (messageId, data) => api.put(`/messages/${messageId}/`, data);
+export const deleteMessage = (messageId) => api.delete(`/messages/${messageId}/`);
 export const pinMessage = (messageId) => api.post(`/messages/${messageId}/pin/`);
 export const getReactions = (channelId) =>
   api.get("/messages/reactions/", { params: channelId ? { channel: channelId } : {} });

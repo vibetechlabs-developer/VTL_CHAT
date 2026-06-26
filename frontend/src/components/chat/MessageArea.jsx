@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Hash, Pin, Bell, Users, Search, MoreHorizontal, Loader2, Paperclip, ExternalLink, X } from "lucide-react";
+import { useConfirm } from "../../context/ConfirmContext";
+import { Hash, Pin, Bell, Users, Search, MoreHorizontal, Loader2, Paperclip, ExternalLink, X, Edit2, Trash2 } from "lucide-react";
 import {
   formatMessageTime,
   getInitials,
@@ -24,13 +25,18 @@ export default function MessageArea({
   onReact,
   reactingId,
   onPin,
+  onEditMessage,
+  onDeleteMessage,
   onToggleMembers,
 }) {
+  const confirm = useConfirm();
   const bottomRef = useRef(null);
   const [hoveredId, setHoveredId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearchInput, setShowSearchInput] = useState(false);
   const [showPinnedOnly, setShowPinnedOnly] = useState(false);
+  const [editingMessageId, setEditingMessageId] = useState(null);
+  const [editingText, setEditingText] = useState("");
   const channelName = getChannelDisplayName(channel, profile?.id, usersMap);
 
   useEffect(() => {
@@ -52,6 +58,26 @@ export default function MessageArea({
   const handleReact = async (messageId, type) => {
     if (!onReact || reactingId) return;
     await onReact(messageId, type);
+  };
+
+  const handleSaveEdit = async (messageId) => {
+    if (!editingText.trim() || !onEditMessage) return;
+    await onEditMessage(messageId, editingText.trim());
+    setEditingMessageId(null);
+    setEditingText("");
+  };
+
+  const handleDeleteClick = async (messageId) => {
+    if (!onDeleteMessage) return;
+    const confirmed = await confirm({
+      title: "Delete Message",
+      message: "Are you sure you want to delete this message? This action cannot be undone.",
+      confirmText: "Delete",
+      type: "danger",
+    });
+    if (confirmed) {
+      await onDeleteMessage(messageId);
+    }
   };
 
   return (
@@ -103,9 +129,35 @@ export default function MessageArea({
           >
             <Pin size={18} />
           </button>
-          <button type="button" title="Notifications" onClick={() => alert("Notifications coming soon!")}><Bell size={18} /></button>
+          <button
+            type="button"
+            title="Notifications"
+            onClick={() =>
+              confirm({
+                title: "Notifications",
+                message: "Notifications coming soon!",
+                confirmText: "OK",
+                cancelText: null,
+              })
+            }
+          >
+            <Bell size={18} />
+          </button>
           <button type="button" title="Members" onClick={onToggleMembers}><Users size={18} /></button>
-          <button type="button" title="More" onClick={() => alert("More options coming soon!")}><MoreHorizontal size={18} /></button>
+          <button
+            type="button"
+            title="More"
+            onClick={() =>
+              confirm({
+                title: "More Options",
+                message: "More options coming soon!",
+                confirmText: "OK",
+                cancelText: null,
+              })
+            }
+          >
+            <MoreHorizontal size={18} />
+          </button>
         </div>
       </header>
 
@@ -208,6 +260,30 @@ export default function MessageArea({
                         {REACTION_EMOJI[type]}
                       </button>
                     );})}
+                    {isSelf && (
+                      <>
+                        <div className="message-area__reaction-picker-divider" />
+                        <button
+                          type="button"
+                          className="message-area__reaction-pick"
+                          title="Edit message"
+                          onClick={() => {
+                            setEditingMessageId(msg.id);
+                            setEditingText(msg.content);
+                          }}
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          className="message-area__reaction-pick message-area__reaction-pick--danger"
+                          title="Delete message"
+                          onClick={() => handleDeleteClick(msg.id)}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </>
+                    )}
                   </div>
                 )}
 
@@ -223,12 +299,49 @@ export default function MessageArea({
                       <span className="message-area__time">{formatMessageTime(msg.created_at)}</span>
                     </div>
                   )}
-                  {msg.content && <p className="message-area__text">{msg.content}</p>}
+                  {editingMessageId === msg.id ? (
+                    <div className="message-area__edit-form">
+                      <textarea
+                        className="message-area__edit-input"
+                        value={editingText}
+                        onChange={(e) => setEditingText(e.target.value)}
+                        rows={2}
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSaveEdit(msg.id);
+                          } else if (e.key === "Escape") {
+                            setEditingMessageId(null);
+                          }
+                        }}
+                      />
+                      <div className="message-area__edit-actions">
+                        <button
+                          type="button"
+                          className="vtl-btn vtl-btn--ghost vtl-btn--xs"
+                          onClick={() => setEditingMessageId(null)}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          className="vtl-btn vtl-btn--primary vtl-btn--xs"
+                          onClick={() => handleSaveEdit(msg.id)}
+                          disabled={!editingText.trim()}
+                        >
+                          Save
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    msg.content && <p className="message-area__text">{msg.content}</p>
+                  )}
 
                   {msgAttachments.length > 0 && (
                     <div className="message-area__attachments">
                       {msgAttachments.map((att) => {
-                        const url = getMediaUrl(att.file);
+                        const url = att.file_url || getMediaUrl(att.file);
                         const name = getFileName(att.file);
                         const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(name);
                         return (
