@@ -150,6 +150,17 @@ export function WorkspaceProvider({ children }) {
     return res.data;
   };
 
+  const editMessage = async (messageId, content) => {
+    const res = await workspaceApi.editMessage(messageId, { content });
+    setMessages((prev) => prev.map((m) => (m.id === messageId ? res.data : m)));
+    return res.data;
+  };
+
+  const deleteMessage = async (messageId) => {
+    await workspaceApi.deleteMessage(messageId);
+    setMessages((prev) => prev.filter((m) => m.id !== messageId));
+  };
+
   const markNotificationRead = async (id) => {
     const res = await workspaceApi.updateNotification(id, { is_read: true });
     setNotifications((prev) => prev.map((n) => (n.id === id ? res.data : n)));
@@ -241,6 +252,8 @@ export function WorkspaceProvider({ children }) {
     createMeeting,
     fetchChannelMessages,
     postMessage,
+    editMessage,
+    deleteMessage,
     pinMessage,
     markNotificationRead,
     markAllNotificationsRead,

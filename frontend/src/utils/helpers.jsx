@@ -1,3 +1,5 @@
+import React from "react";
+
 const AVATAR_COLORS = ["#7C3AED", "#2563EB", "#10B981", "#EC4899", "#F59E0B", "#6366F1", "#06B6D4"];
 
 export function getInitials(name = "") {
@@ -127,4 +129,25 @@ export function extractErrorMessage(err) {
   if (firstKey && Array.isArray(data[firstKey])) return data[firstKey][0];
   if (firstKey) return String(data[firstKey]);
   return "Something went wrong. Please try again.";
+}
+
+export function parseMentions(text, usersMap = {}) {
+  if (!text) return null;
+  const mentionRegex = /(@\w+)/g;
+  const parts = text.split(mentionRegex);
+  
+  return parts.map((part, index) => {
+    if (part.startsWith("@")) {
+      const username = part.substring(1);
+      const isKnownUser = Object.values(usersMap).some((u) => u.username === username);
+      if (isKnownUser) {
+        return (
+          <span key={index} className="mention">
+            {part}
+          </span>
+        );
+      }
+    }
+    return <React.Fragment key={index}>{part}</React.Fragment>;
+  });
 }

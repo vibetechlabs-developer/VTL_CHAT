@@ -16,8 +16,15 @@ class Message(models.Model):
         on_delete=models.CASCADE,
         related_name='messages'
     )
+    content = models.TextField(blank=True, default="")
 
-    content = models.TextField()
+    parent = models.ForeignKey(
+        'self',
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name='replies'
+    )
 
     is_pinned = models.BooleanField(default=False)
 
@@ -96,3 +103,37 @@ class Reaction(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.reaction_type}"
+
+
+class ChannelReadReceipt(models.Model):
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE
+    )
+
+    channel = models.ForeignKey(
+        Channel,
+        on_delete=models.CASCADE,
+        related_name='read_receipts'
+    )
+
+    last_read_message = models.ForeignKey(
+        Message,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL
+    )
+
+    read_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "channel"],
+                name="unique_read_receipt_per_user_channel"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} read {self.channel.name} at {self.read_at}"

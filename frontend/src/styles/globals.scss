@@ -198,6 +198,17 @@ img {
     }
   }
 
+  &--danger {
+    background: linear-gradient(135deg, $accent-red, #b91c1c);
+    color: white;
+    box-shadow: 0 4px 16px rgba(239, 68, 68, 0.35);
+
+    &:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 24px rgba(239, 68, 68, 0.45);
+    }
+  }
+
   &--sm {
     padding: 0.4rem 0.85rem;
     font-size: 0.75rem;
