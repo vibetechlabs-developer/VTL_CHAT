@@ -149,7 +149,24 @@ export default function Chat() {
     []
   );
 
-  useChatSocket(currentChannelId, handleSocketEvent);
+  const handleReconnect = useCallback(async () => {
+    if (!currentChannelId) return;
+    try {
+      const [messagesRes, attachmentsRes, reactionsRes] = await Promise.all([
+        fetchChannelMessages(currentChannelId),
+        workspaceApi.getAttachments(currentChannelId).then((r) => r.data).catch(() => []),
+        workspaceApi.getReactions(currentChannelId).then((r) => r.data).catch(() => []),
+      ]);
+      const messagesList = Array.isArray(messagesRes) ? messagesRes : (messagesRes?.results || []);
+      setChannelMessages(messagesList);
+      setChannelAttachments(attachmentsRes);
+      setChannelReactionsLocal(reactionsRes);
+    } catch (err) {
+      console.error("Failed to resync messages on reconnect:", err);
+    }
+  }, [currentChannelId, fetchChannelMessages]);
+
+  const { connectionStatus } = useChatSocket(currentChannelId, handleSocketEvent, handleReconnect);
 
   const activeChannel = channels.find((c) => c.id === currentChannelId);
   const activeTeam = teams.find((t) => t.id === currentTeamId);
@@ -272,6 +289,11 @@ export default function Chat() {
     >
       <div className="chat-workspace">
         <div className="chat-workspace__main">
+          {connectionStatus !== "connected" && connectionStatus !== "disconnected" && (
+            <div className={`chat-workspace__connection-status chat-workspace__connection-status--${connectionStatus}`}>
+              {connectionStatus === "connecting" ? "Connecting to chat..." : "Connection lost. Reconnecting..."}
+            </div>
+          )}
           <MessageArea
             channel={activeChannel}
             messages={channelMessages}

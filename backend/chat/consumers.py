@@ -9,10 +9,19 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def user_can_access_channel(self, user, channel_id):
-        return Channel.objects.filter(
-            pk=channel_id,
-            team__members__user=user,
-        ).exists()
+        try:
+            channel = Channel.objects.get(pk=channel_id)
+        except Channel.DoesNotExist:
+            return False
+
+        if channel.channel_type == 'PUBLIC':
+            return channel.team and channel.team.members.filter(user=user).exists()
+        elif channel.channel_type == 'PRIVATE':
+            return channel.team and channel.team.members.filter(user=user).exists() and channel.members.filter(id=user.id).exists()
+        elif channel.channel_type == 'DIRECT':
+            return channel.members.filter(id=user.id).exists()
+
+        return False
 
     async def connect(self):
         self.channel_id = self.scope["url_route"]["kwargs"]["channel_id"]
