@@ -386,56 +386,56 @@ export default function MessageArea({
                   )}
 
                   {msgAttachments.length > 0 && (
-                    <div className="message-area__attachments">
-                      {msgAttachments.map((att) => {
-                        const url = att.file_url || getMediaUrl(att.file);
-                        const name = getFileName(att.file);
-                        const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(name);
-                        return (
-                          <div
-                            key={att.id}
-                            className={`message-area__attachment-wrapper ${
-                              isImage ? "message-area__attachment-wrapper--image" : ""
-                            }`}
-                          >
-                            <button
-                              type="button"
-                              onClick={() => setPreviewAttachment(att)}
-                              className={`message-area__attachment ${
-                                isImage ? "message-area__attachment--image" : ""
+                    <>
+                      <div className="message-area__attachments">
+                        {msgAttachments.map((att) => {
+                          const url = att.file_url || getMediaUrl(att.file);
+                          const name = getFileName(att.file);
+                          const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(name);
+                          return (
+                            <div
+                              key={att.id}
+                              className={`message-area__attachment-wrapper ${
+                                isImage ? "message-area__attachment-wrapper--image" : ""
                               }`}
-                              title="Click to preview in-app"
                             >
-                              {isImage ? (
-                                <img src={url} alt={name} loading="lazy" />
-                              ) : (
-                                <>
-                                  <Paperclip size={14} />
-                                  <span>{name}</span>
-                                  <Eye size={12} className="message-area__attachment-eye" />
-                                </>
-                              )}
-                            </button>
-                            <button
-                              type="button"
-                              className="message-area__attachment-download-btn"
-                              title="Download file"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDownload(url, name);
-                              }}
-                            >
-                              <Download size={14} />
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-{msgAttachments.length > 0 && (
-  <p className="message-area__attachment-note">
-    Attachments cannot be edited (like WhatsApp/Teams).
-  </p>
-)}
+                              <button
+                                type="button"
+                                onClick={() => setPreviewAttachment(att)}
+                                className={`message-area__attachment ${
+                                  isImage ? "message-area__attachment--image" : ""
+                                }`}
+                                title="Click to preview in-app"
+                              >
+                                {isImage ? (
+                                  <img src={url} alt={name} loading="lazy" />
+                                ) : (
+                                  <>
+                                    <Paperclip size={14} />
+                                    <span>{name}</span>
+                                    <Eye size={12} className="message-area__attachment-eye" />
+                                  </>
+                                )}
+                              </button>
+                              <button
+                                type="button"
+                                className="message-area__attachment-download-btn"
+                                title="Download file"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDownload(url, name);
+                                }}
+                              >
+                                <Download size={14} />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <p className="message-area__attachment-note">
+                        Attachments cannot be edited (like WhatsApp/Teams).
+                      </p>
+                    </>
                   )}
                 </div>
 
