@@ -29,6 +29,7 @@ export default function MessageArea({
   onEditMessage,
   onDeleteMessage,
   onToggleMembers,
+  onClearChat,
 }) {
   const confirm = useConfirm();
   const bottomRef = useRef(null);
@@ -100,6 +101,19 @@ export default function MessageArea({
     }
   };
 
+  const handleClearClick = async () => {
+    if (!onClearChat) return;
+    const confirmed = await confirm({
+      title: "Clear Chat",
+      message: "Are you sure you want to delete all messages in this channel? This action cannot be undone.",
+      confirmText: "Clear All",
+      type: "danger",
+    });
+    if (confirmed) {
+      await onClearChat();
+    }
+  };
+
   return (
     <div className="message-area">
       <header className="message-area__header">
@@ -164,6 +178,15 @@ export default function MessageArea({
             <Bell size={18} />
           </button>
           <button type="button" title="Members" onClick={onToggleMembers}><Users size={18} /></button>
+          {onClearChat && (
+            <button
+              type="button"
+              title="Clear Chat"
+              onClick={handleClearClick}
+            >
+              <Trash2 size={18} />
+            </button>
+          )}
           <button
             type="button"
             title="More"
@@ -231,6 +254,7 @@ export default function MessageArea({
           const prevSame = i > 0 && messages[i - 1].sender === msg.sender;
           const msgReactions = groupReactions(reactionsByMessage[msg.id] || [], usersMap);
           const msgAttachments = attachmentsByMessage[msg.id] || [];
+          const displayContent = getCleanMessageContent(msg.content, msgAttachments);
           const myReaction = (reactionsByMessage[msg.id] || []).find(
             (r) => Number(r.user) === Number(profile?.id)
           );
@@ -286,11 +310,14 @@ export default function MessageArea({
                         <button
                           type="button"
                           className="message-area__reaction-pick"
-                          title="Edit message"
+                          title={msgAttachments.length > 0 ? "Editing attachments not supported (like WhatsApp/Teams)" : "Edit message"}
                           onClick={() => {
-                            setEditingMessageId(msg.id);
-                            setEditingText(msg.content);
+                            if (msgAttachments.length === 0) {
+                              setEditingMessageId(msg.id);
+                              setEditingText(displayContent);
+                            }
                           }}
+                          disabled={msgAttachments.length > 0}
                         >
                           <Edit2 size={14} />
                         </button>
@@ -355,7 +382,7 @@ export default function MessageArea({
                       </div>
                     </div>
                   ) : (
-                    msg.content && <p className="message-area__text">{msg.content}</p>
+                    displayContent && <p className="message-area__text">{displayContent}</p>
                   )}
 
                   {msgAttachments.length > 0 && (
@@ -404,6 +431,11 @@ export default function MessageArea({
                         );
                       })}
                     </div>
+{msgAttachments.length > 0 && (
+  <p className="message-area__attachment-note">
+    Attachments cannot be edited (like WhatsApp/Teams).
+  </p>
+)}
                   )}
                 </div>
 
@@ -456,6 +488,22 @@ export default function MessageArea({
     </div>
   );
 }
+
+const getCleanMessageContent = (content, attachments) => {
+  if (!content) return "";
+  const trimmed = content.trim();
+  if (trimmed.startsWith("📎")) {
+    return "";
+  }
+  if (attachments && attachments.length > 0) {
+    const isOnlyFilename = attachments.some(att => {
+      const name = getFileName(att.file);
+      return trimmed === name || trimmed === `Shared ${name}` || trimmed === `📎 ${name}`;
+    });
+    if (isOnlyFilename) return "";
+  }
+  return content;
+};
 
 function handleOpenInNewTab(fileUrl, fileName) {
   window.open(fileUrl, "_blank");

@@ -161,6 +161,11 @@ export function WorkspaceProvider({ children }) {
     setMessages((prev) => prev.filter((m) => m.id !== messageId));
   };
 
+  const clearChannelChat = async (channelId) => {
+    await workspaceApi.clearChat(channelId);
+    setMessages((prev) => prev.filter((m) => m.channel !== channelId));
+  };
+
   const markNotificationRead = async (id) => {
     const res = await workspaceApi.updateNotification(id, { is_read: true });
     setNotifications((prev) => prev.map((n) => (n.id === id ? res.data : n)));
@@ -254,6 +259,7 @@ export function WorkspaceProvider({ children }) {
     postMessage,
     editMessage,
     deleteMessage,
+    clearChannelChat,
     pinMessage,
     markNotificationRead,
     markAllNotificationsRead,
