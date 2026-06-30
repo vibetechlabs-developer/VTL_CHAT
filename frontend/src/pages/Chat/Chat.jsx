@@ -32,6 +32,7 @@ export default function Chat() {
     postMessage,
     editMessage,
     deleteMessage,
+    clearChannelChat,
     pinMessage,
     addReaction,
     uploadMessageAttachment,
@@ -145,8 +146,16 @@ export default function Chat() {
           return [...prev, payload.payload];
         });
       }
+      if (payload.type === "chat_cleared" && payload.payload) {
+        if (Number(payload.payload.channel) === Number(currentChannelId)) {
+          setChannelMessages([]);
+          setChannelAttachments([]);
+          setChannelReactionsLocal([]);
+        }
+        return;
+      }
     },
-    []
+    [currentChannelId]
   );
 
   const handleReconnect = useCallback(async () => {
@@ -265,6 +274,18 @@ export default function Chat() {
     }
   };
 
+  const handleClearChat = async () => {
+    if (!currentChannelId) return;
+    try {
+      await clearChannelChat(currentChannelId);
+      setChannelMessages([]);
+      setChannelAttachments([]);
+      setChannelReactionsLocal([]);
+    } catch (err) {
+      console.error(extractErrorMessage(err));
+    }
+  };
+
   const handleDMSelect = async (userId) => {
     try {
       const dmChannel = await createDirectMessageChannel(userId);
@@ -307,6 +328,7 @@ export default function Chat() {
             onPin={handlePin}
             onEditMessage={handleEditMessage}
             onDeleteMessage={handleDeleteMessage}
+            onClearChat={handleClearChat}
             onToggleMembers={() => setShowMembers(!showMembers)}
           />
           <MessageInput

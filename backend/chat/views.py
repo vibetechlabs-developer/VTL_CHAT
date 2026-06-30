@@ -425,3 +425,24 @@ class MessageSearchView(APIView):
         page = paginator.paginate_queryset(qs, request, view=self)
         serializer = MessageSerializer(page, many=True)
         return paginator.get_paginated_response(serializer.data)
+
+
+class ClearChatView(APIView):
+    def post(self, request):
+        channel_id = request.data.get("channel")
+        if not channel_id:
+            return Response({"error": "Channel ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        if not _user_can_access_channel(request.user, channel_id):
+            return Response(
+                {"error": "Channel not found or permission denied"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+            
+        Message.objects.filter(channel_id=channel_id).delete()
+        broadcast_to_channel(
+            int(channel_id),
+            {"type": "chat_cleared", "payload": {"channel": int(channel_id)}},
+        )
+        return Response({"status": "success"}, status=status.HTTP_200_OK)
+

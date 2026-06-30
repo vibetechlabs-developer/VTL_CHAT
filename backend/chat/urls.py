@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import MessageListCreateView, MessageDetailView, MessagePinView, AttachmentListCreateView, ReactionListCreateView, ReactionDetailView, AttachmentDetailView, ReadReceiptView
+from .views import MessageListCreateView, MessageDetailView, MessagePinView, AttachmentListCreateView, ReactionListCreateView, ReactionDetailView, AttachmentDetailView, ReadReceiptView, ClearChatView
 urlpatterns = [
 
     path(
@@ -41,4 +41,9 @@ urlpatterns = [
         ReadReceiptView.as_view()
     ),
 
-]
+    path(
+        "clear/",
+        ClearChatView.as_view()
+    ),
+
+]
