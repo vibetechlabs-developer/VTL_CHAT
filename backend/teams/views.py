@@ -1,5 +1,6 @@
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
+from django.db import transaction
 from users.models import User
 
 from rest_framework import status
@@ -86,8 +87,10 @@ class TeamListCreateView(APIView):
 
         serializer = TeamSerializer(data=request.data)
         if serializer.is_valid():
-            team = serializer.save(created_by=request.user)
-            TeamMember.objects.create(team=team, user=request.user, role='ADMIN')
+            # Use atomic transaction to ensure team creation and admin membership are both persisted
+            with transaction.atomic():
+                team = serializer.save(created_by=request.user)
+                TeamMember.objects.create(team=team, user=request.user, role='ADMIN')
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -229,16 +232,20 @@ class TeamMemberDetailView(APIView):
 
 class ChannelListCreateView(APIView):
     def get(self, request):
-        # Return team channels the user is a member of, plus DM channels they're in
-        team_channels = Channel.objects.filter(
+        public_team_channels = Channel.objects.filter(
             team__members__user=request.user,
-            channel_type__in=['PUBLIC', 'PRIVATE'],
-        ).distinct()
+            channel_type='PUBLIC',
+        )
+        private_team_channels = Channel.objects.filter(
+            team__members__user=request.user,
+            channel_type='PRIVATE',
+            members=request.user,
+        )
         dm_channels = Channel.objects.filter(
             channel_type='DIRECT',
             members=request.user,
-        ).distinct()
-        channels = (team_channels | dm_channels).distinct()
+        )
+        channels = (public_team_channels | private_team_channels | dm_channels).distinct()
         serializer = ChannelSerializer(channels, many=True)
         return Response(serializer.data)
 
@@ -252,9 +259,31 @@ class ChannelListCreateView(APIView):
 
         serializer = ChannelSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save(created_by=request.user)
+            with transaction.atomic():
+                channel = serializer.save(created_by=request.user)
+                if channel.channel_type in ['PRIVATE', 'DIRECT']:
+                    channel.members.add(request.user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+def _get_accessible_channel(user, pk):
+    try:
+        channel = Channel.objects.get(pk=pk)
+    except Channel.DoesNotExist:
+        return None
+
+    if channel.channel_type == 'PUBLIC':
+        if channel.team and channel.team.members.filter(user=user).exists():
+            return channel
+    elif channel.channel_type == 'PRIVATE':
+        if channel.team and channel.team.members.filter(user=user).exists() and channel.members.filter(id=user.id).exists():
+            return channel
+    elif channel.channel_type == 'DIRECT':
+        if channel.members.filter(id=user.id).exists():
+            return channel
+
+    return None
 
 
 class ChannelDetailView(APIView):
@@ -265,20 +294,14 @@ class ChannelDetailView(APIView):
             return None
 
     def get(self, request, pk):
-        channel = Channel.objects.filter(
-            pk=pk,
-            team__members__user=request.user
-        ).first()
+        channel = _get_accessible_channel(request.user, pk)
         if channel is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
         serializer = ChannelSerializer(channel)
         return Response(serializer.data)
 
     def put(self, request, pk):
-        channel = Channel.objects.filter(
-            pk=pk,
-            team__members__user=request.user
-        ).first()
+        channel = _get_accessible_channel(request.user, pk)
         if channel is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
         serializer = ChannelSerializer(channel, data=request.data, partial=True)
@@ -288,10 +311,7 @@ class ChannelDetailView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk):
-        channel = Channel.objects.filter(
-            pk=pk,
-            team__members__user=request.user
-        ).first()
+        channel = _get_accessible_channel(request.user, pk)
         if channel is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
         channel.delete()

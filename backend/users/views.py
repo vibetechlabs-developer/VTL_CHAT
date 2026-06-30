@@ -14,6 +14,7 @@ from django.core.exceptions import ValidationError
 from google.oauth2 import id_token as google_id_token
 from google.auth.transport import requests as google_requests
 import requests
+from rest_framework.throttling import ScopedRateThrottle
 
 from .models import User, PasswordResetToken
 
@@ -68,9 +69,10 @@ def get_or_create_google_user(email, name=''):
 class SignupView(APIView):
 
     permission_classes = [AllowAny]
+    throttle_scope = "signup"
+    throttle_classes = [ScopedRateThrottle]
 
     def post(self, request):
-
         serializer = UserSerializer(data=request.data)
 
         if serializer.is_valid():
@@ -93,9 +95,10 @@ class SignupView(APIView):
 class LoginView(APIView):
 
     permission_classes = [AllowAny]
+    throttle_scope = "login"
+    throttle_classes = [ScopedRateThrottle]
 
     def post(self, request):
-
         email = request.data.get("email")
         password = request.data.get("password")
 

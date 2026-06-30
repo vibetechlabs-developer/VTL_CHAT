@@ -1,7 +1,7 @@
 import re
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, post_delete, pre_save
 from django.dispatch import receiver
-from .models import Message
+from .models import Message, Attachment
 from notifications.models import Notification
 from users.models import User
 
@@ -49,3 +49,29 @@ def create_message_notification(sender, instance, created, **kwargs):
                     message=f"{sender_user.username}: {instance.content[:50]}",
                     notification_type="MESSAGE"
                 )
+
+
+@receiver(post_delete, sender=Attachment)
+def delete_attachment_file_on_delete(sender, instance, **kwargs):
+    """Delete the physical file from storage when an Attachment record is deleted."""
+    if instance.file:
+        try:
+            instance.file.delete(save=False)
+        except Exception:
+            pass
+
+
+@receiver(pre_save, sender=Attachment)
+def delete_old_attachment_file_on_change(sender, instance, **kwargs):
+    """If an Attachment's file field is replaced, delete the old file from storage."""
+    if not instance.pk:
+        return
+    try:
+        old_instance = Attachment.objects.get(pk=instance.pk)
+    except Attachment.DoesNotExist:
+        return
+    if old_instance.file and old_instance.file != instance.file:
+        try:
+            old_instance.file.delete(save=False)
+        except Exception:
+            pass

@@ -18,6 +18,42 @@ $chat-topbar-height: 58px;
     overflow: hidden;
     background: transparent;
   }
+
+  &__connection-status {
+    width: 100%;
+    padding: 0.45rem 1.25rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-align: center;
+    color: white;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    animation: slide-down 0.2s ease-out;
+
+    &--connecting {
+      background: rgba(124, 58, 237, 0.8);
+      border-bottom: 1px solid rgba(124, 58, 237, 0.95);
+    }
+
+    &--reconnecting {
+      background: rgba(245, 158, 11, 0.8);
+      border-bottom: 1px solid rgba(245, 158, 11, 0.95);
+      animation: pulse-orange 1.5s infinite ease-in-out;
+    }
+  }
+
+  @keyframes slide-down {
+    from { transform: translateY(-100%); }
+    to { transform: translateY(0); }
+  }
+
+  @keyframes pulse-orange {
+    0%, 100% { opacity: 0.95; }
+    50% { opacity: 0.7; }
+  }
 }
 
 @media (max-width: 768px) {

@@ -146,21 +146,40 @@ CSRF_TRUSTED_ORIGINS = [
     if origin.strip()
 ]
 
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ),
 
+AUTH_USER_MODEL = 'users.User'
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
     ),
-
-    "DEFAULT_PAGINATION_CLASS": (
-        "rest_framework.pagination.PageNumberPagination",
+    "DEFAULT_THROTTLE_CLASSES": (
+        "rest_framework.throttling.ScopedRateThrottle",
     ),
-
-    "PAGE_SIZE": 20
+    "DEFAULT_THROTTLE_RATES": {
+        "signup": "5/min",
+        "login": "5/min",
+        "message": "100/min",
+    },
 }
+
+
+
+
+
+
+
+
+
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
@@ -168,13 +187,6 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
 }
-
-AUTH_USER_MODEL = 'users.User'
-
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
 
 ALLOWED_HOSTS = [
     host.strip()

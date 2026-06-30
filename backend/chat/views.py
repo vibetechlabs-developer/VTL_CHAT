@@ -3,6 +3,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.http import Http404
 from django.db.models import Q
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.throttling import ScopedRateThrottle
 from teams.models import Channel
 
 from .models import Message, Attachment, Reaction, ChannelReadReceipt
@@ -19,10 +21,19 @@ def _broadcast_reaction(channel_id, action, payload):
 
 def _user_can_access_channel(user, channel_id):
     """Check if a user can access a channel (team member or DM participant)."""
-    return Channel.objects.filter(
-        Q(pk=channel_id, team__members__user=user) |
-        Q(pk=channel_id, channel_type='DIRECT', members=user)
-    ).distinct().exists()
+    try:
+        channel = Channel.objects.get(pk=channel_id)
+    except Channel.DoesNotExist:
+        return False
+
+    if channel.channel_type == 'PUBLIC':
+        return channel.team and channel.team.members.filter(user=user).exists()
+    elif channel.channel_type == 'PRIVATE':
+        return channel.team and channel.team.members.filter(user=user).exists() and channel.members.filter(id=user.id).exists()
+    elif channel.channel_type == 'DIRECT':
+        return channel.members.filter(id=user.id).exists()
+
+    return False
 
 
 class MessageListCreateView(APIView):
@@ -41,12 +52,25 @@ class MessageListCreateView(APIView):
                 )
             messages = Message.objects.filter(channel_id=channel_id, parent__isnull=True).order_by("created_at")
         else:
+            public_channels = Channel.objects.filter(
+                team__members__user=request.user,
+                channel_type='PUBLIC'
+            )
+            private_channels = Channel.objects.filter(
+                team__members__user=request.user,
+                channel_type='PRIVATE',
+                members=request.user
+            )
+            dm_channels = Channel.objects.filter(
+                channel_type='DIRECT',
+                members=request.user
+            )
+            accessible_channels = (public_channels | private_channels | dm_channels).distinct()
             messages = Message.objects.filter(
-                Q(channel__team__members__user=request.user) |
-                Q(channel__channel_type='DIRECT', channel__members=request.user),
+                channel__in=accessible_channels,
                 parent__isnull=True
             ).distinct().order_by("-created_at")
-
+        messages = messages.select_related('sender', 'channel').prefetch_related('attachments', 'reactions')
         from rest_framework.pagination import PageNumberPagination
         paginator = PageNumberPagination()
         page = paginator.paginate_queryset(messages, request, view=self)
@@ -56,6 +80,9 @@ class MessageListCreateView(APIView):
 
         serializer = MessageSerializer(messages, many=True)
         return Response(serializer.data)
+
+    throttle_scope = 'message'
+    throttle_classes = [ScopedRateThrottle]
 
     def post(self, request):
         channel_id = request.data.get("channel")
@@ -85,12 +112,9 @@ class MessageDetailView(APIView):
             raise Http404
 
     def get(self, request, pk):
-        message = Message.objects.filter(
-            Q(pk=pk, channel__team__members__user=request.user) |
-            Q(pk=pk, channel__channel_type='DIRECT', channel__members=request.user)
-        ).distinct().first()
+        message = Message.objects.filter(pk=pk).first()
 
-        if message is None:
+        if message is None or not _user_can_access_channel(request.user, message.channel_id):
             return Response(
                 {"error": "Message not found"},
                 status=status.HTTP_404_NOT_FOUND,
@@ -108,6 +132,11 @@ class MessageDetailView(APIView):
             return Response(
                 {"error": "Message not found"},
                 status=status.HTTP_404_NOT_FOUND,
+            )
+        if not _user_can_access_channel(request.user, message.channel_id):
+            return Response(
+                {"error": "Permission denied"},
+                status=status.HTTP_403_FORBIDDEN,
             )
         serializer = MessageSerializer(message, data=request.data, partial=True)
         if serializer.is_valid():
@@ -128,6 +157,11 @@ class MessageDetailView(APIView):
             return Response(
                 {"error": "Message not found"},
                 status=status.HTTP_404_NOT_FOUND,
+            )
+        if not _user_can_access_channel(request.user, message.channel_id):
+            return Response(
+                {"error": "Permission denied"},
+                status=status.HTTP_403_FORBIDDEN,
             )
         channel_id = message.channel_id
         message_id = message.id
@@ -363,3 +397,31 @@ class ReadReceiptView(APIView):
             defaults={'last_read_message_id': message_id}
         )
         return Response({"status": "success"}, status=status.HTTP_200_OK)
+class MessageSearchView(APIView):
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'message'
+
+    def get(self, request):
+        query = request.query_params.get('q', '').strip()
+        if not query:
+            return Response({"error": "Search query required"}, status=status.HTTP_400_BAD_REQUEST)
+        channel_id = request.query_params.get('channel')
+        # Base queryset limited to channels the user can access
+        if channel_id:
+            if not _user_can_access_channel(request.user, channel_id):
+                return Response({"error": "Channel access denied"}, status=status.HTTP_403_FORBIDDEN)
+            qs = Message.objects.filter(channel_id=channel_id, content__icontains=query)
+        else:
+            # All accessible channels
+            # Get channel ids the user can access (public + private where member + direct)
+            public_qs = Channel.objects.filter(team__members__user=request.user, channel_type='PUBLIC')
+            private_qs = Channel.objects.filter(team__members__user=request.user, channel_type='PRIVATE', members=request.user)
+            direct_qs = Channel.objects.filter(channel_type='DIRECT', members=request.user)
+            allowed_channels = public_qs | private_qs | direct_qs
+            qs = Message.objects.filter(channel__in=allowed_channels, content__icontains=query)
+
+        qs = qs.select_related('sender').order_by('-created_at')
+        paginator = PageNumberPagination()
+        page = paginator.paginate_queryset(qs, request, view=self)
+        serializer = MessageSerializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data)
