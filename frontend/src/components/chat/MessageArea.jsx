@@ -458,51 +458,9 @@ export default function MessageArea({
 }
 
 function handleOpenInNewTab(fileUrl, fileName) {
-  const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName);
-  const isPDF = /\.pdf$/i.test(fileName);
-  
-  if (isImage) {
-    const newWindow = window.open();
-    if (newWindow) {
-      newWindow.document.write(`
-        <html>
-          <head>
-            <title>${fileName}</title>
-            <style>
-              body { margin: 0; background: #0e1224; display: flex; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; }
-              img { max-width: 100%; max-height: 100%; object-fit: contain; box-shadow: 0 8px 32px rgba(0,0,0,0.5); border-radius: 8px; }
-            </style>
-          </head>
-          <body>
-            <img src="${fileUrl}" alt="${fileName}" />
-          </body>
-        </html>
-      `);
-      newWindow.document.close();
-    }
-  } else if (isPDF) {
-    const newWindow = window.open();
-    if (newWindow) {
-      newWindow.document.write(`
-        <html>
-          <head>
-            <title>${fileName}</title>
-            <style>
-              body { margin: 0; background: #0e1224; }
-              iframe { border: none; width: 100%; height: 100vh; }
-            </style>
-          </head>
-          <body>
-            <iframe src="${fileUrl}"></iframe>
-          </body>
-        </html>
-      `);
-      newWindow.document.close();
-    }
-  } else {
-    window.open(fileUrl, "_blank");
-  }
+  window.open(fileUrl, "_blank");
 }
+
 
 function AttachmentPreviewModal({ attachment, onClose, onDownload }) {
   const url = attachment.file_url || getMediaUrl(attachment.file);
