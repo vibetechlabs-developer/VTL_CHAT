@@ -2,11 +2,9 @@ import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
-  Hash,
   MessageSquare,
-  Video,
+  Calendar,
   Bell,
-  User,
   Settings,
   LogOut,
   Sparkles,
@@ -14,68 +12,75 @@ import {
 import "./FloatingSidebar.scss";
 
 const navItems = [
-  { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/notifications", icon: Bell, label: "Activity" },
+  { to: "/chat", icon: MessageSquare, label: "Chat" },
   { to: "/teams", icon: Users, label: "Teams" },
-  { to: "/channels", icon: Hash, label: "Channels" },
-  { to: "/chat", icon: MessageSquare, label: "Chat", featured: true },
-  { to: "/meetings", icon: Video, label: "Meetings" },
-  { to: "/notifications", icon: Bell, label: "Notifications" },
-  { to: "/profile", icon: User, label: "Profile" },
-  { to: "/settings", icon: Settings, label: "Settings" },
+  { to: "/meetings", icon: Calendar, label: "Calendar" },
+  { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
 ];
-export default function FloatingSidebar({ collapsed, onToggle, onLogout }) {
+
+export default function FloatingSidebar({ onLogout, initials }) {
   return (
-    <aside className={`floating-sidebar ${collapsed ? "floating-sidebar--collapsed" : ""}`}>
+    <aside className="floating-sidebar">
       <div className="floating-sidebar__header">
-        <div className="floating-sidebar__brand">
-          <div className="floating-sidebar__logo">
-            <Sparkles size={18} />
-          </div>
-          {!collapsed && <span className="floating-sidebar__name">VTL Chat</span>}
+        <div className="floating-sidebar__logo" title="VTL Chat">
+          <Sparkles size={20} />
         </div>
       </div>
 
       <nav className="floating-sidebar__nav">
-        {navItems.map(({ to, icon: Icon, label, featured }) => (
+        {navItems.map(({ to, icon: Icon, label }) => (
           <NavLink
             key={to}
             to={to}
             className={({ isActive }) =>
-              `floating-sidebar__link ${isActive ? "floating-sidebar__link--active" : ""} ${
-                featured ? "floating-sidebar__link--featured" : ""
-              }`
+              `floating-sidebar__link ${isActive ? "floating-sidebar__link--active" : ""}`
             }
             title={label}
           >
             <span className="floating-sidebar__link-icon">
-              <Icon size={18} strokeWidth={1.75} />
+              <Icon size={20} strokeWidth={2} />
             </span>
-            {!collapsed && <span className="floating-sidebar__link-label">{label}</span>}
-            {featured && !collapsed && <span className="floating-sidebar__link-badge">Live</span>}
+            <span className="floating-sidebar__link-label">{label}</span>
           </NavLink>
         ))}
       </nav>
 
       <div className="floating-sidebar__footer">
+        <NavLink
+          to="/profile"
+          className={({ isActive }) =>
+            `floating-sidebar__link ${isActive ? "floating-sidebar__link--active" : ""}`
+          }
+          title="Profile"
+        >
+          <div className="floating-sidebar__avatar">
+            {initials || "U"}
+          </div>
+          <span className="floating-sidebar__link-label">Profile</span>
+        </NavLink>
+
+        <NavLink
+          to="/settings"
+          className={({ isActive }) =>
+            `floating-sidebar__link ${isActive ? "floating-sidebar__link--active" : ""}`
+          }
+          title="Settings"
+        >
+          <span className="floating-sidebar__link-icon">
+            <Settings size={20} strokeWidth={2} />
+          </span>
+          <span className="floating-sidebar__link-label">Settings</span>
+        </NavLink>
+
         <button
-          className="floating-sidebar__logout"
+          className="floating-sidebar__logout-btn"
           onClick={onLogout}
           title="Sign out"
         >
-          <LogOut size={18} strokeWidth={1.75} />
-          {!collapsed && <span>Sign out</span>}
+          <LogOut size={20} strokeWidth={2} />
+          <span className="floating-sidebar__link-label">Sign out</span>
         </button>
-
-        {!collapsed && (
-          <button className="floating-sidebar__collapse" onClick={onToggle}>
-            Collapse
-          </button>
-        )}
-        {collapsed && (
-          <button className="floating-sidebar__collapse floating-sidebar__collapse--icon" onClick={onToggle} title="Expand">
-            →
-          </button>
-        )}
       </div>
     </aside>
   );

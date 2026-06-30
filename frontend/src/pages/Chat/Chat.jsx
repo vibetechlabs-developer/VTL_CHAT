@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useParams, useLocation, useNavigate } from "react-router-dom";
 import AppLayout from "../../components/vtl/AppLayout";
-import ChannelSidebar from "../../components/chat/ChannelSidebar";
 import MessageArea from "../../components/chat/MessageArea";
 import MessageInput from "../../components/chat/MessageInput";
 import MemberPanel from "../../components/chat/MemberPanel";
-import Modal from "../../components/vtl/Modal";
 import { useWorkspace } from "../../context/WorkspaceContext";
 import { useChatSocket } from "../../hooks/useChatSocket";
 import * as workspaceApi from "../../services/workspaceApi";
@@ -12,6 +11,10 @@ import { extractErrorMessage, getChannelDisplayName } from "../../utils/helpers"
 import "./Chat.scss";
 
 export default function Chat() {
+  const { teamId, channelId } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+
   const {
     profile,
     loading,
@@ -30,38 +33,47 @@ export default function Chat() {
     editMessage,
     deleteMessage,
     pinMessage,
-    createChannel,
-    createDirectMessageChannel,
     addReaction,
     uploadMessageAttachment,
   } = useWorkspace();
 
-  const [activeTeamId, setActiveTeamId] = useState(null);
-  const [activeChannelId, setActiveChannelId] = useState(null);
   const [channelMessages, setChannelMessages] = useState([]);
   const [channelAttachments, setChannelAttachments] = useState([]);
   const [channelReactionsLocal, setChannelReactionsLocal] = useState([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [reactingId, setReactingId] = useState(null);
-  const [showCreateChannel, setShowCreateChannel] = useState(false);
   const [showMembers, setShowMembers] = useState(true);
-  const [channelForm, setChannelForm] = useState({ name: "", description: "", team: "", channel_type: "PUBLIC" });
-  const [formError, setFormError] = useState("");
-  const [formSubmitting, setFormSubmitting] = useState(false);
 
-  const currentTeamId = activeTeamId || (teams.length ? teams[0].id : null);
-  const teamChannels = useMemo(() => {
-    return channels.filter((c) => c.team === currentTeamId);
-  }, [channels, currentTeamId]);
-  const currentChannelId = activeChannelId || (teamChannels.length ? teamChannels[0].id : null);
+  // Unified parameter resolution
+  const currentChannelId = useMemo(() => {
+    if (channelId) return Number(channelId);
+    
+    if (location.pathname.startsWith("/chat")) {
+      const dmChannels = channels.filter((c) => c.channel_type === "DIRECT");
+      return dmChannels.length > 0 ? dmChannels[0].id : null;
+    }
+    
+    if (location.pathname.startsWith("/teams")) {
+      if (teams.length > 0) {
+        const teamCh = channels.filter((c) => c.team === teams[0].id && c.channel_type !== "DIRECT");
+        return teamCh.length > 0 ? teamCh[0].id : null;
+      }
+    }
+    
+    return null;
+  }, [channelId, location.pathname, channels, teams]);
+
+  const currentTeamId = useMemo(() => {
+    if (teamId) return Number(teamId);
+    const activeChannel = channels.find((c) => c.id === currentChannelId);
+    return activeChannel?.team || (teams.length ? teams[0].id : null);
+  }, [teamId, currentChannelId, channels, teams]);
 
   useEffect(() => {
     let active = true;
     const loadData = async () => {
       if (!currentChannelId) return;
-      await Promise.resolve(); // Defer execution to prevent synchronous setState inside effect
-      if (!active) return;
       setMessagesLoading(true);
       try {
         const [messagesRes, attachmentsRes, reactionsRes] = await Promise.all([
@@ -212,43 +224,6 @@ export default function Chat() {
     }
   };
 
-  const handleCreateChannel = async (e) => {
-    e.preventDefault();
-    setFormError("");
-    setFormSubmitting(true);
-    try {
-      let teamId = channelForm.team || currentTeamId;
-      if (!teamId && teams[0]) teamId = teams[0].id;
-
-      if (!teamId) {
-        setFormError("Create a team first from the Teams page.");
-        return;
-      }
-
-      await createChannel({
-        name: channelForm.name,
-        description: channelForm.description,
-        team: Number(teamId),
-        channel_type: channelForm.channel_type,
-      });
-      setShowCreateChannel(false);
-      setChannelForm({ name: "", description: "", team: "", channel_type: "PUBLIC" });
-    } catch (err) {
-      setFormError(extractErrorMessage(err));
-    } finally {
-      setFormSubmitting(false);
-    }
-  };
-
-  const handleDMSelect = async (userId) => {
-    try {
-      const dmChannel = await createDirectMessageChannel(userId);
-      setActiveChannelId(dmChannel.id);
-    } catch (err) {
-      console.error(extractErrorMessage(err));
-    }
-  };
-
   const handlePin = async (messageId) => {
     try {
       await pinMessage(messageId);
@@ -273,9 +248,18 @@ export default function Chat() {
     }
   };
 
+  const handleDMSelect = async (userId) => {
+    try {
+      const dmChannel = await createDirectMessageChannel(userId);
+      navigate(`/chat/dm/${dmChannel.id}`);
+    } catch (err) {
+      console.error(extractErrorMessage(err));
+    }
+  };
+
   return (
     <AppLayout
-      title="Chat"
+      title={location.pathname.startsWith("/chat") ? "Chat" : "Teams"}
       subtitle="Real-time collaboration workspace"
       showSearch={false}
       fullBleed
@@ -287,25 +271,6 @@ export default function Chat() {
       unreadNotificationCount={unreadNotificationCount}
     >
       <div className="chat-workspace">
-        <ChannelSidebar
-          teams={teams}
-          channels={channels}
-          users={users}
-          activeTeamId={currentTeamId}
-          activeChannelId={currentChannelId}
-          onTeamSelect={(id) => {
-            setActiveTeamId(id);
-            const first = channels.find((c) => c.team === id);
-            setActiveChannelId(first?.id || null);
-          }}
-          onChannelSelect={setActiveChannelId}
-          onDMSelect={handleDMSelect}
-          profile={profile}
-          initials={initials}
-          loading={loading}
-          onCreateChannel={() => setShowCreateChannel(true)}
-        />
-
         <div className="chat-workspace__main">
           <MessageArea
             channel={activeChannel}
@@ -330,7 +295,7 @@ export default function Chat() {
           />
         </div>
 
-        {showMembers && (
+        {showMembers && activeChannel?.channel_type !== "DIRECT" && (
           <MemberPanel
             members={teamMembersList}
             usersMap={usersMap}
@@ -340,60 +305,6 @@ export default function Chat() {
           />
         )}
       </div>
-
-      <Modal open={showCreateChannel} onClose={() => setShowCreateChannel(false)} title="Create Channel">
-        <form className="vtl-modal__form" onSubmit={handleCreateChannel}>
-          {formError && <div className="vtl-modal__error">{formError}</div>}
-          <label>
-            Channel name
-            <input
-              required
-              minLength={3}
-              value={channelForm.name}
-              onChange={(e) => setChannelForm({ ...channelForm, name: e.target.value })}
-              placeholder="general"
-            />
-          </label>
-          <label>
-            Description
-            <textarea
-              value={channelForm.description}
-              onChange={(e) => setChannelForm({ ...channelForm, description: e.target.value })}
-              placeholder="What is this channel about?"
-            />
-          </label>
-          <label>
-            Team
-            <select
-              value={channelForm.team || currentTeamId || ""}
-              onChange={(e) => setChannelForm({ ...channelForm, team: e.target.value })}
-              required
-            >
-              {teams.map((t) => (
-                <option key={t.id} value={t.id}>{t.name}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Visibility
-            <select
-              value={channelForm.channel_type}
-              onChange={(e) => setChannelForm({ ...channelForm, channel_type: e.target.value })}
-            >
-              <option value="PUBLIC">Public</option>
-              <option value="PRIVATE">Private</option>
-            </select>
-          </label>
-          <div className="vtl-modal__actions">
-            <button type="button" className="vtl-btn vtl-btn--ghost" onClick={() => setShowCreateChannel(false)}>
-              Cancel
-            </button>
-            <button type="submit" className="vtl-btn vtl-btn--primary" disabled={formSubmitting}>
-              {formSubmitting ? "Creating..." : "Create Channel"}
-            </button>
-          </div>
-        </form>
-      </Modal>
     </AppLayout>
   );
 }
