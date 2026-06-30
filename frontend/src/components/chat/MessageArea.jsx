@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useConfirm } from "../../context/ConfirmContext";
-import { Hash, Pin, Bell, Users, Search, MoreHorizontal, Loader2, Paperclip, ExternalLink, X, Edit2, Trash2 } from "lucide-react";
+import { Hash, Pin, Bell, Users, Search, MoreHorizontal, Loader2, Paperclip, ExternalLink, X, Edit2, Trash2, Download, Eye } from "lucide-react";
 import {
   formatMessageTime,
   getInitials,
@@ -38,6 +39,25 @@ export default function MessageArea({
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [editingText, setEditingText] = useState("");
   const channelName = getChannelDisplayName(channel, profile?.id, usersMap);
+
+  const [previewAttachment, setPreviewAttachment] = useState(null);
+
+  const handleDownload = async (fileUrl, fileName) => {
+    try {
+      const response = await fetch(fileUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", fileName || "download");
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      window.open(fileUrl, "_blank");
+    }
+  };
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -345,23 +365,42 @@ export default function MessageArea({
                         const name = getFileName(att.file);
                         const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(name);
                         return (
-                          <a
+                          <div
                             key={att.id}
-                            href={url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={`message-area__attachment ${isImage ? "message-area__attachment--image" : ""}`}
+                            className={`message-area__attachment-wrapper ${
+                              isImage ? "message-area__attachment-wrapper--image" : ""
+                            }`}
                           >
-                            {isImage ? (
-                              <img src={url} alt={name} loading="lazy" />
-                            ) : (
-                              <>
-                                <Paperclip size={14} />
-                                <span>{name}</span>
-                                <ExternalLink size={12} />
-                              </>
-                            )}
-                          </a>
+                            <button
+                              type="button"
+                              onClick={() => setPreviewAttachment(att)}
+                              className={`message-area__attachment ${
+                                isImage ? "message-area__attachment--image" : ""
+                              }`}
+                              title="Click to preview in-app"
+                            >
+                              {isImage ? (
+                                <img src={url} alt={name} loading="lazy" />
+                              ) : (
+                                <>
+                                  <Paperclip size={14} />
+                                  <span>{name}</span>
+                                  <Eye size={12} className="message-area__attachment-eye" />
+                                </>
+                              )}
+                            </button>
+                            <button
+                              type="button"
+                              className="message-area__attachment-download-btn"
+                              title="Download file"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDownload(url, name);
+                              }}
+                            >
+                              <Download size={14} />
+                            </button>
+                          </div>
                         );
                       })}
                     </div>
@@ -404,6 +443,155 @@ export default function MessageArea({
         });
         })()}
         <div ref={bottomRef} />
+      </div>
+
+      {previewAttachment && createPortal(
+        <AttachmentPreviewModal
+          attachment={previewAttachment}
+          onClose={() => setPreviewAttachment(null)}
+          onDownload={handleDownload}
+        />,
+        document.body
+      )}
+    </div>
+  );
+}
+
+function handleOpenInNewTab(fileUrl, fileName) {
+  const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName);
+  const isPDF = /\.pdf$/i.test(fileName);
+  
+  if (isImage) {
+    const newWindow = window.open();
+    if (newWindow) {
+      newWindow.document.write(`
+        <html>
+          <head>
+            <title>${fileName}</title>
+            <style>
+              body { margin: 0; background: #0e1224; display: flex; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; }
+              img { max-width: 100%; max-height: 100%; object-fit: contain; box-shadow: 0 8px 32px rgba(0,0,0,0.5); border-radius: 8px; }
+            </style>
+          </head>
+          <body>
+            <img src="${fileUrl}" alt="${fileName}" />
+          </body>
+        </html>
+      `);
+      newWindow.document.close();
+    }
+  } else if (isPDF) {
+    const newWindow = window.open();
+    if (newWindow) {
+      newWindow.document.write(`
+        <html>
+          <head>
+            <title>${fileName}</title>
+            <style>
+              body { margin: 0; background: #0e1224; }
+              iframe { border: none; width: 100%; height: 100vh; }
+            </style>
+          </head>
+          <body>
+            <iframe src="${fileUrl}"></iframe>
+          </body>
+        </html>
+      `);
+      newWindow.document.close();
+    }
+  } else {
+    window.open(fileUrl, "_blank");
+  }
+}
+
+function AttachmentPreviewModal({ attachment, onClose, onDownload }) {
+  const url = attachment.file_url || getMediaUrl(attachment.file);
+  const name = getFileName(attachment.file);
+  const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(name);
+  const isVideo = /\.(mp4|webm|ogg)$/i.test(name);
+  const isAudio = /\.(mp3|wav|ogg)$/i.test(name);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  return (
+    <div className="message-area__preview-modal" onClick={onClose}>
+      <div className="message-area__preview-content" onClick={(e) => e.stopPropagation()}>
+        <div className="message-area__preview-header">
+          <div className="message-area__preview-filename">
+            <Paperclip size={16} />
+            <span>{name}</span>
+          </div>
+          <div className="message-area__preview-actions">
+            <button
+              type="button"
+              className="vtl-btn vtl-btn--ghost vtl-btn--xs"
+              style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem", color: "inherit" }}
+              onClick={() => handleOpenInNewTab(url, name)}
+              title="Open in new tab"
+            >
+              <ExternalLink size={14} />
+              <span>Open in new tab</span>
+            </button>
+            <button
+              type="button"
+              className="vtl-btn vtl-btn--primary vtl-btn--xs"
+              onClick={() => onDownload(url, name)}
+              title="Download file"
+            >
+              <Download size={14} />
+              <span>Download</span>
+            </button>
+            <button
+              type="button"
+              className="vtl-btn vtl-btn--ghost vtl-btn--xs message-area__preview-close"
+              onClick={onClose}
+              title="Close preview"
+            >
+              <X size={16} />
+              <span>Close</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="message-area__preview-body">
+          {isImage ? (
+            <img src={url} alt={name} className="message-area__preview-media" />
+          ) : isVideo ? (
+            <video src={url} controls autoPlay className="message-area__preview-media" />
+          ) : isAudio ? (
+            <audio src={url} controls className="message-area__preview-audio" />
+          ) : (
+            <div className="message-area__preview-fallback">
+              <Paperclip size={64} className="message-area__preview-fallback-icon" />
+              <h3>{name}</h3>
+              <p>Preview not available for this file type.</p>
+              <div className="message-area__preview-fallback-buttons">
+                <button
+                  type="button"
+                  className="vtl-btn vtl-btn--primary"
+                  onClick={() => onDownload(url, name)}
+                >
+                  <Download size={16} />
+                  Download File
+                </button>
+                <button
+                  type="button"
+                  className="vtl-btn vtl-btn--ghost"
+                  onClick={() => handleOpenInNewTab(url, name)}
+                >
+                  <ExternalLink size={16} />
+                  Open in New Tab
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

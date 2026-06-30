@@ -291,6 +291,24 @@
     margin-top: 0.45rem;
   }
 
+  &__attachment-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    gap: 0.35rem;
+
+    &:hover {
+      .message-area__attachment-download-btn {
+        opacity: 1;
+      }
+    }
+
+    &--image {
+      max-width: 260px;
+    }
+  }
+
   &__attachment {
     display: inline-flex;
     align-items: center;
@@ -303,17 +321,25 @@
     font-size: 0.8rem;
     font-weight: 500;
     max-width: 100%;
+    text-align: left;
+    cursor: pointer;
     transition: $transition-fast;
 
     span {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      max-width: 180px;
     }
 
     &:hover {
       background: rgba(124, 58, 237, 0.1);
       border-color: $border-purple;
+    }
+
+    &-eye {
+      opacity: 0.5;
+      margin-left: auto;
     }
 
     &--image {
@@ -328,8 +354,159 @@
         object-fit: cover;
         border-radius: $radius-sm;
         display: block;
+        transition: transform 0.2s ease;
+      }
+
+      &:hover img {
+        transform: scale(1.02);
       }
     }
+  }
+
+  &__attachment-download-btn {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: $text-secondary;
+    padding: 0.4rem;
+    border-radius: $radius-sm;
+    cursor: pointer;
+    @include flex-center;
+    transition: $transition-fast;
+
+    &:hover {
+      background: $accent-purple;
+      color: white;
+      border-color: $accent-purple;
+    }
+
+    .message-area__attachment-wrapper--image & {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      opacity: 0;
+      z-index: 2;
+      border-radius: 50%;
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(4px);
+    }
+  }
+
+  /* Preview Lightbox Modal */
+  &__preview-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(4, 6, 15, 0.85);
+    backdrop-filter: blur(16px);
+    z-index: 1000;
+    @include flex-center;
+    animation: fade-in 0.2s ease-out;
+  }
+
+  &__preview-content {
+    width: 90vw;
+    height: 85vh;
+    max-width: 1000px;
+    background: rgba(13, 17, 34, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: $radius-lg;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+    animation: scale-up 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  &__preview-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.02);
+
+    .message-area__preview-filename {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 600;
+      color: $text-primary;
+      font-size: 0.95rem;
+
+      svg {
+        color: $accent-purple-light;
+      }
+    }
+
+    .message-area__preview-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+  }
+
+  &__preview-body {
+    flex: 1;
+    overflow: auto;
+    @include flex-center;
+    padding: 1.5rem;
+    background: rgba(0, 0, 0, 0.2);
+  }
+
+  &__preview-media {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: $radius-md;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  }
+
+  &__preview-audio {
+    width: 100%;
+    max-width: 500px;
+  }
+
+  &__preview-fallback {
+    text-align: center;
+    max-width: 400px;
+    padding: 2rem;
+
+    .message-area__preview-fallback-icon {
+      color: $text-muted;
+      margin-bottom: 1.5rem;
+    }
+
+    h3 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: $text-primary;
+      margin-bottom: 0.5rem;
+      word-break: break-all;
+    }
+
+    p {
+      color: $text-muted;
+      font-size: 0.9rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .message-area__preview-fallback-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 0.75rem;
+    }
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes scale-up {
+    from { transform: scale(0.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
   }
 
   &__reaction-picker {

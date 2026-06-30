@@ -292,6 +292,9 @@ export default function Chat() {
             onSend={handleSend}
             disabled={!currentChannelId}
             sending={sending}
+            members={teamMembersList}
+            teams={teams}
+            usersMap={usersMap}
           />
         </div>
 
