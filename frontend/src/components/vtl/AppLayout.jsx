@@ -1,6 +1,6 @@
-import { useState } from "react";
 import AuroraBackground from "./AuroraBackground";
 import FloatingSidebar from "./FloatingSidebar";
+import ContextSidebar from "./ContextSidebar";
 import TopBar from "./TopBar";
 import "./AppLayout.scss";
 
@@ -20,8 +20,6 @@ export default function AppLayout({
   error,
   unreadNotificationCount = 0,
 }) {
-  const [collapsed, setCollapsed] = useState(false);
-
   if (loading) {
     return (
       <div className="app-layout app-layout--loading">
@@ -44,15 +42,19 @@ export default function AppLayout({
   }
 
   return (
-    <div className={`app-layout ${collapsed ? "app-layout--collapsed" : ""}`}>
+    <div className="app-layout">
       <AuroraBackground />
+
+      {/* Column A: Slim Left App Bar */}
       <FloatingSidebar
-        collapsed={collapsed}
-        onToggle={() => setCollapsed(!collapsed)}
         onLogout={onLogout}
         initials={initials}
       />
 
+      {/* Column B: Context-aware Secondary Sidebar */}
+      <ContextSidebar />
+
+      {/* Column C: Main Workspace */}
       <div className="app-layout__main">
         <TopBar
           title={title}
@@ -67,7 +69,7 @@ export default function AppLayout({
           unreadCount={unreadNotificationCount}
           onLogout={onLogout}
         />
-        <div className={`app-layout__content ${fullBleed ? "app-layout__content--full" : ""}`}>
+        <div className={`app-layout__content ${fullBleed ? "app-layout__content--full" : "app-layout__content--padded"}`}>
           {children}
         </div>
       </div>

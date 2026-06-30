@@ -6,9 +6,8 @@
   flex-direction: column;
   height: 100%;
   min-width: 0;
-  background: rgba(11, 16, 32, 0.4);
-  border-radius: $radius-lg;
-  border: 1px solid $glass-border;
+  background: transparent;
+  border-radius: 0;
   overflow: hidden;
 
   &__header {

@@ -4,8 +4,6 @@ import ForgotPassword from "../pages/Auth/Forgot Password/ForgotPassword";
 import ResetPassword from "../pages/Auth/Reset Password/ResetPassword";
 import Signup from "../pages/Auth/Signup/Signup";
 import Dashboard from "../pages/Dashboard/Dashboard";
-import Teams from "../pages/Teams/Teams";
-import Channels from "../pages/Channels/Channels";
 import Chat from "../pages/Chat/Chat";
 import Meetings from "../pages/Meetings/Meetings";
 import Notifications from "../pages/Notifications/Notifications";
@@ -24,9 +22,10 @@ function AppRoutes() {
         
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/teams" element={<Teams />} />
-          <Route path="/channels" element={<Channels />} />
+          <Route path="/teams" element={<Chat />} />
+          <Route path="/teams/:teamId/channels/:channelId" element={<Chat />} />
           <Route path="/chat" element={<Chat />} />
+          <Route path="/chat/dm/:channelId" element={<Chat />} />
           <Route path="/meetings" element={<Meetings />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/profile" element={<Profile />} />
@@ -37,4 +36,6 @@ function AppRoutes() {
   );
 }
 
+
 export default AppRoutes;
+

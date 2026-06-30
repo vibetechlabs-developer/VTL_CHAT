@@ -1,31 +1,27 @@
 @use "../../styles/variables" as *;
 
+$chat-topbar-height: 58px;
+
 .chat-workspace {
   display: flex;
-  gap: 1rem;
-  height: calc(100vh - #{$topbar-height} - 80px);
-  min-height: 500px;
+  flex: 1;
+  min-height: 0;
+  height: calc(100vh - #{$chat-topbar-height});
+  width: 100%;
+  overflow: hidden;
 
   &__main {
     flex: 1;
     display: flex;
     flex-direction: column;
     min-width: 0;
-    border-radius: $radius-lg;
     overflow: hidden;
-    border: 1px solid $glass-border;
-    background: rgba(11, 16, 32, 0.4);
+    background: transparent;
   }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 768px) {
   .chat-workspace {
-    flex-direction: column;
-    height: auto;
-    min-height: calc(100vh - 200px);
-
-    .channel-sidebar {
-      max-height: 280px;
-    }
+    height: calc(100vh - #{$chat-topbar-height} - 60px);
   }
 }
