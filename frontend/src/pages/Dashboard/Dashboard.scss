@@ -35,6 +35,15 @@
     margin: 0;
   }
 
+  &__close {
+    background: transparent;
+    border: none;
+    color: $text-primary;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-left: auto;
+  }
+
   &__link {
     font-size: 0.85rem;
     font-weight: 600;
