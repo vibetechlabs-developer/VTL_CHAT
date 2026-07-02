@@ -52,6 +52,7 @@ export default function Dashboard() {
     usersMap,
     unreadNotificationCount,
   } = useWorkspace();
+  const [showTopNotif, setShowTopNotif] = useState(true);
   const [search, setSearch] = useState("");
 
   const stats = [
@@ -159,14 +160,15 @@ export default function Dashboard() {
       error={error}
       unreadNotificationCount={unreadNotificationCount}
     >
-      {unreadNotificationCount > 0 && (
+      {unreadNotificationCount > 0 && showTopNotif && (
         <div className="dash-top-notification">
+          <button className="dash-top-notification__close" onClick={() => setShowTopNotif(false)}>✕</button>
           <div className="dash-top-notification__info">
             <span className="dash-top-notification__badge">New</span>
             <p>You have {unreadNotificationCount} unread notification{unreadNotificationCount > 1 ? "s" : ""} waiting for your review.</p>
           </div>
           <Link to="/notifications" className="dash-top-notification__link">
-            View notifications &rarr;
+            View notifications →
           </Link>
         </div>
       )}
