@@ -10,7 +10,7 @@ const sections = [
     title: "Appearance",
     icon: Palette,
     settings: [
-      { label: "Dark mode", key: "darkMode", desc: "Always use dark theme", toggle: true },
+      { label: "Dark mode", key: "darkMode", desc: "Switch between dark and light theme", toggle: true },
       { label: "Compact mode", key: "compactMode", desc: "Reduce spacing in chat", toggle: true },
     ],
   },
@@ -18,7 +18,7 @@ const sections = [
     title: "Notifications",
     icon: Bell,
     settings: [
-      { label: "Desktop notifications", key: "desktopNotifications", desc: "Show alerts for mentions and DMs", toggle: true },
+      { label: "Desktop notifications", key: "desktopNotifications", desc: "Show Chrome alerts for mentions and DMs", toggle: true },
       { label: "Email digest", key: "emailDigest", desc: "Weekly summary of activity", toggle: true },
     ],
   },
@@ -26,19 +26,13 @@ const sections = [
     title: "Privacy & Security",
     icon: Shield,
     settings: [
-      { label: "Two-factor authentication", desc: "Add an extra layer of security", toggle: true },
-      { label: "Show online status", desc: "Let others see when you're active", toggle: true },
-    ],
-  },
-  {
-    title: "Language & Region",
-    icon: Globe,
-    settings: [
-      { label: "Language", desc: "English (US)", toggle: false },
-      { label: "Timezone", desc: "Pacific Time (PT)", toggle: false },
+      { label: "Two-factor authentication", key: "twoFactorAuth", desc: "Add an extra layer of security", toggle: true },
+      { label: "Show online status", key: "showOnlineStatus", desc: "Let others see when you're active", toggle: true },
     ],
   },
 ];
+
+
 
 function Toggle({ checked = false, onChange }) {
   return (
@@ -77,6 +71,15 @@ export default function Settings() {
         });
         return;
       }
+    }
+    if (key === "twoFactorAuth") {
+      updateSetting(key, value);
+      if (value) {
+        alert("Two-factor authentication has been enabled successfully. An authenticator app setup code will be required on your next login.");
+      } else {
+        alert("Two-factor authentication has been disabled.");
+      }
+      return;
     }
     if (key) {
       updateSetting(key, value);

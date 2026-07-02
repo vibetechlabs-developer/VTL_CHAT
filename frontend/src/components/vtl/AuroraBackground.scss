@@ -6,7 +6,7 @@
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
-  background: $bg-primary;
+  background: var(--bg-primary, #{$bg-primary});
 
   &__mesh {
     position: absolute;

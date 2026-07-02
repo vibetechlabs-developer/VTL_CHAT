@@ -1,9 +1,10 @@
 @use "./variables" as *;
 @use "./mixins" as *;
+@use "./light-theme";
 
-/* ==========================================
-   RESET
-========================================== */
+// ==========================================
+//   RESET
+// ==========================================
 
 * {
   margin: 0;
@@ -18,15 +19,53 @@ body,
   min-height: 100vh;
 }
 
-/* ==========================================
-   BODY
-========================================== */
+:root {
+  --bg-primary: #050816;
+  --bg-secondary: #0b1020;
+  --bg-surface: #0b1020;
+  --bg-elevated: #111827;
+  --text-primary: #ffffff;
+  --text-secondary: #e2e8f0;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
+  --glass-bg: rgba(255, 255, 255, 0.04);
+  --glass-bg-hover: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --border-light: rgba(255, 255, 255, 0.08);
+  --input-bg: rgba(255, 255, 255, 0.05);
+  --shadow-color: rgba(0, 0, 0, 0.3);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.15);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);
+}
+
+/* Light mode overrides */
+body.light-mode {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #f1f5f9;
+  --bg-surface: #f1f5f9;
+  --bg-elevated: #ffffff;
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --text-dim: #94a3b8;
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-bg-hover: rgba(255, 255, 255, 0.95);
+  --glass-border: rgba(15, 23, 42, 0.08);
+  --border-light: rgba(15, 23, 42, 0.08);
+  --input-bg: #ffffff;
+  --shadow-color: rgba(15, 23, 42, 0.05);
+  --scrollbar-thumb: rgba(15, 23, 42, 0.18);
+  --scrollbar-thumb-hover: rgba(15, 23, 42, 0.3);
+
+  background: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+}
 
 body {
   font-family: "Inter", sans-serif;
 
-  background: $bg-primary;
-  color: $text-primary;
+  background: var(--bg-primary, $bg-primary);
+  color: var(--text-primary, $text-primary);
 
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -35,6 +74,7 @@ body {
 
   @include scrollbar;
 }
+
 
 /* ==========================================
    LINKS

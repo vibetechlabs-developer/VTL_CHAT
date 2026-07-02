@@ -13,8 +13,8 @@
 }
 
 @mixin glass-panel {
-  background: $glass-bg;
-  border: 1px solid $glass-border;
+  background: var(--glass-bg, #{$glass-bg});
+  border: 1px solid var(--glass-border, #{$glass-border});
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border-radius: $radius-lg;
@@ -25,8 +25,8 @@
   transition: $transition-normal;
 
   &:hover {
-    background: $glass-bg-hover;
-    border-color: $glass-border-hover;
+    background: var(--glass-bg-hover, #{$glass-bg-hover});
+    border-color: var(--glass-border-hover, #{$glass-border-hover});
     transform: translateY(-2px);
     box-shadow: $shadow-md;
   }
@@ -60,13 +60,13 @@
     radial-gradient(ellipse at 15% 20%, rgba(124, 58, 237, 0.12) 0%, transparent 50%),
     radial-gradient(ellipse at 85% 15%, rgba(37, 99, 235, 0.1) 0%, transparent 45%),
     radial-gradient(ellipse at 50% 80%, rgba(124, 58, 237, 0.06) 0%, transparent 40%),
-    $bg-primary;
+    var(--bg-primary, #{$bg-primary});
 }
 
 @mixin scrollbar {
   &::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
+    width: 6px;
+    height: 6px;
   }
 
   &::-webkit-scrollbar-track {
@@ -74,11 +74,11 @@
   }
 
   &::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.12);
+    background: var(--scrollbar-thumb, rgba(255, 255, 255, 0.15));
     border-radius: $radius-full;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.2);
+      background: var(--scrollbar-thumb-hover, rgba(255, 255, 255, 0.25));
     }
   }
 }

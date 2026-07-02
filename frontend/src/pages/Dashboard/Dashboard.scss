@@ -1,6 +1,54 @@
 @use "../../styles/variables" as *;
 @use "../../styles/mixins" as *;
 
+.dash-top-notification {
+  @include glass-panel;
+  padding: 0.85rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  background: rgba(124, 58, 237, 0.06);
+  flex-wrap: wrap;
+
+  &__info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  &__badge {
+    background: linear-gradient(135deg, $accent-purple, $accent-blue);
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.15rem 0.45rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  p {
+    font-size: 0.85rem;
+    color: $text-secondary;
+    margin: 0;
+  }
+
+  &__link {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: $accent-purple-light;
+    text-decoration: none;
+    transition: $transition-fast;
+
+    &:hover {
+      color: $text-primary;
+      transform: translateX(3px);
+    }
+  }
+}
+
 .dash-hero {
   @include glass-panel;
   padding: 2.5rem;

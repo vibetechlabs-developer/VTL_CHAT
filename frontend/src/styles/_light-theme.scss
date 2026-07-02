@@ -1,0 +1,743 @@
+@use "./variables" as *;
+
+// ============================================================
+//  VTL CHAT — COMPREHENSIVE LIGHT THEME OVERRIDES
+//  Applied when body.light-mode is active
+// ============================================================
+
+$lm-bg:          #f8fafc;
+$lm-bg-2:        #f1f5f9;
+$lm-bg-3:        #ffffff;
+$lm-white:       #ffffff;
+$lm-text:        #0f172a;
+$lm-text-2:      #334155;
+$lm-text-3:      #64748b;
+$lm-text-4:      #94a3b8;
+$lm-border:      rgba(15, 23, 42, 0.08);
+$lm-border-2:    rgba(15, 23, 42, 0.12);
+$lm-card:        rgba(255, 255, 255, 0.85);
+$lm-card-hover:  rgba(255, 255, 255, 0.95);
+$lm-purple:      #6366f1;
+$lm-shadow:      0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+$lm-shadow-lg:   0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+
+body.light-mode {
+
+  // ========================
+  // AURORA / BACKGROUND
+  // ========================
+  .aurora-bg {
+    background: linear-gradient(135deg, #eef2ff 0%, #f0f4ff 50%, #ede9fe 100%);
+
+    &__orb--purple { background: rgba(124, 58, 237, 0.09); }
+    &__orb--blue   { background: rgba(37, 99, 235, 0.07); }
+    &__orb--violet { background: rgba(167, 139, 250, 0.06); }
+    &__mesh {
+      background:
+        radial-gradient(ellipse at 20% 0%, rgba(124, 58, 237, 0.05) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 10%, rgba(37, 99, 235, 0.04) 0%, transparent 45%),
+        radial-gradient(ellipse at 40% 100%, rgba(124, 58, 237, 0.03) 0%, transparent 40%);
+    }
+  }
+
+  // ========================
+  // APP LAYOUT
+  // ========================
+  .app-layout {
+    &--loading { background: $lm-bg; }
+    &__error {
+      background: rgba(239, 68, 68, 0.07);
+      border-color: rgba(239, 68, 68, 0.2);
+      color: #dc2626;
+    }
+  }
+
+  // ========================
+  // FLOATING LEFT SIDEBAR
+  // ========================
+  .floating-sidebar {
+    background: #e2e8f0;
+    border-right: 1px solid $lm-border-2;
+
+    &__link {
+      color: rgba(26, 29, 46, 0.55);
+      border-left-color: transparent;
+
+      &:hover {
+        color: $lm-text;
+        background: rgba(0, 0, 0, 0.05);
+      }
+
+      &--active {
+        color: $lm-purple;
+        background: rgba(124, 58, 237, 0.10);
+
+        &::before { background: $lm-purple; opacity: 1; }
+
+        .floating-sidebar__link-icon { color: $lm-purple; }
+      }
+    }
+
+    &__logout-btn {
+      color: rgba(26, 29, 46, 0.55);
+
+      &:hover {
+        color: #dc2626;
+        background: rgba(220, 38, 38, 0.07);
+      }
+    }
+
+    &__footer {
+      border-top: 1px solid $lm-border;
+    }
+  }
+
+  // ========================
+  // CONTEXT SIDEBAR (Column B)
+  // ========================
+  .context-sidebar {
+    background: $lm-bg-2;
+    border-right: 1px solid $lm-border-2;
+
+    &__header {
+      border-bottom: 1px solid $lm-border;
+      h2 { color: $lm-text; }
+    }
+
+    &__add-btn {
+      color: $lm-text-3;
+      &:hover { color: $lm-text; background: rgba(0,0,0,0.06); }
+    }
+
+    &__read-btn { color: $lm-purple; }
+
+    &__section-title { color: $lm-text-4; }
+
+    &__team-name { color: $lm-text-2; }
+
+    &__team-row:hover { background: rgba(0,0,0,0.04); }
+
+    &__toggle { color: $lm-text-3; &:hover { color: $lm-text; } }
+
+    &__team-actions button {
+      color: $lm-text-4;
+      &:hover { color: $lm-text; background: rgba(0,0,0,0.07); }
+    }
+
+    &__channel-link {
+      color: $lm-text-3;
+
+      &:hover {
+        color: $lm-text;
+        background: rgba(0, 0, 0, 0.04);
+      }
+
+      &--active {
+        color: $lm-purple;
+        background: rgba(124, 58, 237, 0.09);
+        font-weight: 600;
+
+        .context-sidebar__ch-icon { color: $lm-purple; }
+      }
+    }
+
+    &__ch-icon { color: $lm-text-4; }
+
+    &__empty { color: $lm-text-3; }
+    &__empty-ch { color: $lm-text-4; }
+
+    &__dm-row {
+      color: $lm-text-3;
+      &:hover { color: $lm-text; background: rgba(0,0,0,0.04); }
+      &--active { color: $lm-purple; background: rgba(124, 58, 237, 0.09); }
+    }
+
+    &__new-dm-user {
+      color: $lm-text-2;
+      &:hover { color: $lm-text; background: rgba(0,0,0,0.05); }
+    }
+
+    &__notif-row {
+      background: rgba(255,255,255,0.65);
+      border-color: $lm-border;
+      &:hover { background: rgba(255,255,255,0.9); }
+      &--unread { background: rgba(124,58,237,0.06); border-color: rgba(124,58,237,0.15); }
+      p { color: $lm-text-3; }
+    }
+
+    &__notif-meta strong { color: $lm-text; }
+
+    &__meeting-row {
+      background: rgba(255,255,255,0.65);
+      border-color: $lm-border;
+      span { color: $lm-text-3; }
+    }
+
+    &__meeting-header strong { color: $lm-text; }
+  }
+
+  // ========================
+  // TOPBAR
+  // ========================
+  .topbar {
+    background: $lm-white;
+    border-bottom: 1px solid $lm-border-2;
+
+    &__titles {
+      h1 { color: $lm-text; }
+      p  { color: $lm-text-3; }
+    }
+
+    &__search {
+      background: rgba(255,255,255,0.75);
+      border-color: $lm-border;
+      svg { color: $lm-text-4; }
+      input { color: $lm-text; &::placeholder { color: $lm-text-4; } }
+      &:focus-within { border-color: rgba(124,58,237,0.35); background: white; }
+    }
+
+    &__action {
+      background: rgba(255,255,255,0.6);
+      border-color: $lm-border;
+      color: $lm-text-3;
+      &:hover { color: $lm-text; background: $lm-white; border-color: $lm-border-2; }
+    }
+
+    &__profile {
+      background: rgba(255,255,255,0.65);
+      border-color: $lm-border;
+      &:hover { background: $lm-white; border-color: $lm-border-2; }
+    }
+
+    &__profile-name  { color: $lm-text; }
+    &__profile-email { color: $lm-text-3; }
+    &__profile-chevron { color: $lm-text-4; }
+
+    &__avatar-status--online {
+      border-color: $lm-white;
+    }
+
+    &__dropdown {
+      background: $lm-white;
+      border-color: $lm-border-2;
+      box-shadow: $lm-shadow-lg;
+    }
+
+    &__dropdown-item {
+      color: $lm-text-2;
+      &:hover { background: $lm-bg; color: $lm-text; }
+      &--danger { color: #dc2626; &:hover { background: rgba(220,38,38,0.06); } }
+    }
+
+    &__dropdown-divider { background: $lm-border; }
+  }
+
+  // ========================
+  // GLASS CARD
+  // ========================
+  .glass-card {
+    background: $lm-card;
+    border-color: $lm-border;
+    box-shadow: $lm-shadow;
+
+    &--hover:hover {
+      background: $lm-card-hover;
+      border-color: $lm-border-2;
+      box-shadow: $lm-shadow-lg;
+    }
+  }
+
+  // ========================
+  // STAT CARD
+  // ========================
+  .stat-card {
+    &__icon {
+      background: rgba(255,255,255,0.8);
+      border-color: $lm-border;
+    }
+    &__title { color: $lm-text-3; }
+    &__value { color: $lm-text; }
+  }
+
+  // ========================
+  // DASHBOARD
+  // ========================
+  .dash-top-notification {
+    background: rgba(99, 102, 241, 0.06);
+    border-color: rgba(99, 102, 241, 0.18);
+    p { color: #312e81; }
+    &__link {
+      color: #4f46e5;
+      &:hover { color: #312e81; }
+    }
+  }
+
+  .dash-hero {
+    background:
+      radial-gradient(ellipse at 20% 50%, rgba(124,58,237,0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 30%, rgba(37,99,235,0.06) 0%, transparent 45%),
+      rgba(255,255,255,0.75);
+    border-color: $lm-border;
+
+    &__content {
+      h2 { color: $lm-text; }
+      p { color: $lm-text-3; }
+    }
+  }
+
+  .dash-card {
+    &__title { color: $lm-text-3; }
+    &__header { border-bottom-color: $lm-border; }
+  }
+
+  .dash-timeline {
+    &::before { background: $lm-border; }
+    &__item {
+      p { color: $lm-text-2; strong { color: $lm-text; } }
+      span { color: $lm-text-4; }
+    }
+    &__icon {
+      background: $lm-white;
+      border-color: $lm-border;
+    }
+  }
+
+  .dash-chat {
+    background: rgba(255,255,255,0.65) !important;
+    border-color: $lm-border !important;
+    &:hover { background: $lm-white !important; }
+  }
+
+  .dash-empty { color: $lm-text-3; }
+
+  // ========================
+  // CHANNEL SIDEBAR (right of context)
+  // ========================
+  .channel-sidebar {
+    background: $lm-bg-2;
+    border-right: 1px solid $lm-border-2;
+
+    &__server {
+      opacity: 0.85;
+      &:hover { opacity: 1; }
+      &--active { opacity: 1; box-shadow: 0 0 0 3px rgba(124,58,237,0.3); }
+    }
+
+    &__section-label { color: $lm-text-4; }
+
+    &__channel {
+      color: $lm-text-3;
+      &:hover { color: $lm-text; background: rgba(0,0,0,0.04); }
+      &--active { color: $lm-purple; background: rgba(124,58,237,0.08); font-weight: 600; }
+    }
+
+    &__dm-avatar { color: white; }
+
+    &__dm-row, &__dm-btn {
+      color: $lm-text-3;
+      &:hover { color: $lm-text; background: rgba(0,0,0,0.04); }
+      &--active { color: $lm-purple; background: rgba(124,58,237,0.08); }
+    }
+
+    &__user {
+      background: rgba(0,0,0,0.04);
+      border-top: 1px solid $lm-border;
+    }
+
+    &__user-name   { color: $lm-text; }
+    &__user-status { color: #10b981; }
+    &__user-lock   { color: $lm-text-4; }
+
+    &__add-btn {
+      color: $lm-text-4;
+      &:hover { color: $lm-text; background: rgba(0,0,0,0.06); }
+    }
+  }
+
+  // ========================
+  // MESSAGE AREA
+  // ========================
+  .message-area {
+    &__header {
+      background: $lm-white;
+      border-bottom-color: $lm-border;
+
+      h2 { color: $lm-text; }
+      p, span { color: $lm-text-3; }
+
+      svg { color: $lm-text-3; }
+    }
+
+    &__date-divider span {
+      background: $lm-bg;
+      color: $lm-text-4;
+      border-color: $lm-border;
+    }
+
+    &__messages { background: $lm-bg-3; }
+
+    &__bubble-wrapper:hover { background: rgba(0,0,0,0.025); }
+
+    &__avatar { color: white; }
+
+    &__meta-name { color: $lm-text; }
+    &__meta-time { color: $lm-text-4; }
+    &__text { color: $lm-text-2; }
+
+    &__system-msg {
+      color: $lm-text-4;
+      &::before, &::after { background: $lm-border; }
+    }
+
+    &__actions {
+      background: $lm-white;
+      border-color: $lm-border;
+      button { color: $lm-text-3; &:hover { color: $lm-text; background: $lm-bg; } }
+    }
+
+    &__reactions button {
+      background: rgba(255,255,255,0.7);
+      border-color: $lm-border;
+      color: $lm-text-3;
+      &:hover { background: $lm-white; }
+      &--active { background: rgba(124,58,237,0.08); border-color: rgba(124,58,237,0.2); color: $lm-purple; }
+    }
+
+    &__thread-btn {
+      color: $lm-text-4;
+      &:hover { color: $lm-purple; background: rgba(124,58,237,0.05); }
+    }
+
+    &__empty { color: $lm-text-3; h3 { color: $lm-text; } }
+    &__pin-bar { background: rgba(255,255,255,0.7); border-color: $lm-border; color: $lm-text-3; }
+    &__pin-bar strong { color: $lm-text; }
+  }
+
+  // ========================
+  // MESSAGE INPUT
+  // ========================
+  .message-input {
+    &__bar {
+      background: $lm-white;
+      border-color: $lm-border-2;
+      box-shadow: $lm-shadow;
+
+      &:focus-within {
+        border-color: rgba(124, 58, 237, 0.35);
+        box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.08);
+      }
+    }
+
+    &__attach {
+      background: rgba(0, 0, 0, 0.04);
+      color: $lm-text-3;
+      &:hover {
+        color: $accent-green;
+        background: rgba(16, 185, 129, 0.08);
+      }
+    }
+
+    &__textarea {
+      color: $lm-text;
+      &::placeholder { color: $lm-text-4; }
+    }
+
+    &__actions button {
+      color: $lm-text-4;
+      &:hover { color: $lm-purple; background: rgba(124, 58, 237, 0.07); }
+    }
+
+    &__divider { background: $lm-border; }
+
+    &__send {
+      background: linear-gradient(135deg, #7c3aed, #2563eb);
+      color: white;
+    }
+
+    // Emoji Picker overrides
+    &__emoji-picker {
+      background: $lm-white;
+      border-color: $lm-border-2;
+      box-shadow: $lm-shadow-lg;
+
+      &-header {
+        color: $lm-text-3;
+      }
+      &-emoji {
+        &:hover {
+          background: $lm-bg-2;
+        }
+      }
+    }
+
+    // Mention Dropdown overrides
+    &__mention-dropdown {
+      background: $lm-white;
+      border-color: $lm-border-2;
+      box-shadow: $lm-shadow-lg;
+
+      &-title {
+        color: $lm-purple;
+        border-bottom-color: $lm-border;
+      }
+
+      &-item {
+        color: $lm-text-2;
+        &:hover, &--active {
+          background: $lm-bg-2;
+          color: $lm-text;
+        }
+      }
+    }
+  }
+
+  // ========================
+  // MEMBER PANEL
+  // ========================
+  .member-panel {
+    background: $lm-bg-2;
+    border-left: 1px solid $lm-border-2;
+
+    &__header {
+      border-bottom: 1px solid $lm-border;
+      h3 { color: $lm-text; }
+      button { color: $lm-text-4; &:hover { color: $lm-text; } }
+    }
+
+    &__group-label { color: $lm-text-4; }
+
+    &__member {
+      color: $lm-text-2;
+      &:hover { background: rgba(0,0,0,0.04); }
+      &--self { color: $lm-text; }
+    }
+
+    &__name { color: $lm-text; }
+    &__role { color: $lm-text-4; }
+    &__empty { color: $lm-text-3; }
+  }
+
+  // ========================
+  // MODAL
+  // ========================
+  .vtl-modal {
+    background: rgba(15,23,42,0.55);
+
+    &__panel {
+      background: $lm-white;
+      border-color: $lm-border-2;
+      box-shadow: $lm-shadow-lg;
+
+      h3 { color: $lm-text; }
+    }
+
+    &__close {
+      background: rgba(0,0,0,0.05);
+      color: $lm-text-3;
+      &:hover { background: rgba(0,0,0,0.09); color: $lm-text; }
+    }
+
+    &__form {
+      label { color: $lm-text-3; }
+
+      input, textarea, select {
+        background: $lm-bg;
+        border-color: $lm-border-2;
+        color: $lm-text;
+
+        &::placeholder { color: $lm-text-4; }
+        &:focus { border-color: rgba(124,58,237,0.4); box-shadow: 0 0 0 3px rgba(124,58,237,0.08); }
+
+        option { background: $lm-white; color: $lm-text; }
+      }
+    }
+  }
+
+  // ========================
+  // VTL BUTTONS (ghost)
+  // ========================
+  .vtl-btn {
+    &--ghost {
+      background: rgba(0,0,0,0.05);
+      border-color: $lm-border-2;
+      color: $lm-text;
+      &:hover:not(:disabled) { background: rgba(0,0,0,0.09); }
+    }
+  }
+
+  // ========================
+  // SETTINGS
+  // ========================
+  .settings-section {
+    &__head {
+      border-bottom-color: $lm-border;
+      h4 { color: $lm-text; }
+    }
+  }
+
+  .settings-row {
+    border-bottom-color: $lm-border;
+    &__label { color: $lm-text; }
+    &__desc   { color: $lm-text-3; }
+    &__link {
+      color: $lm-purple;
+      border-color: rgba(124,58,237,0.3);
+      &:hover { background: rgba(124,58,237,0.08); }
+    }
+  }
+
+  .settings-toggle {
+    background: rgba(0,0,0,0.12);
+    border-color: $lm-border-2;
+    span { background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.15); }
+    &--on { background: $lm-purple; border-color: $lm-purple; }
+  }
+
+  .settings-shortcuts {
+    kbd {
+      background: rgba(0,0,0,0.06);
+      border-color: $lm-border-2;
+      color: $lm-text-3;
+    }
+    span { color: $lm-text-3; }
+  }
+
+  // ========================
+  // PROFILE PAGE
+  // ========================
+  .profile-hero {
+    background: rgba(255,255,255,0.8) !important;
+    border-color: $lm-border !important;
+
+    &__name { color: $lm-text; }
+    &__email, &__role { color: $lm-text-3; }
+    &__bio { color: $lm-text-2; }
+  }
+
+  .profile-detail {
+    background: rgba(255,255,255,0.8) !important;
+    border-color: $lm-border !important;
+
+    h4 { color: $lm-text; }
+
+    input, textarea {
+      background: $lm-bg;
+      border-color: $lm-border-2;
+      color: $lm-text;
+      &::placeholder { color: $lm-text-4; }
+      &:focus { border-color: rgba(124,58,237,0.4); }
+    }
+
+    label { color: $lm-text-3; }
+  }
+
+  .profile-stats {
+    background: rgba(255,255,255,0.8) !important;
+    border-color: $lm-border !important;
+
+    &__item {
+      border-bottom-color: $lm-border;
+      label { color: $lm-text-3; }
+      span  { color: $lm-text; }
+    }
+  }
+
+  // ========================
+  // NOTIFICATIONS PAGE
+  // ========================
+  .notifications-page {
+    &__list {
+      background: rgba(255,255,255,0.82) !important;
+      border-color: $lm-border !important;
+    }
+
+    &__item {
+      border-bottom-color: $lm-border;
+      p { color: $lm-text-2; }
+      time { color: $lm-text-4; }
+      &:hover { background: $lm-bg; }
+      &--unread { background: rgba(124,58,237,0.04); }
+    }
+
+    &__mark-all { color: $lm-purple; &:hover { background: rgba(124,58,237,0.07); } }
+  }
+
+  // ========================
+  // TEAMS PAGE
+  // ========================
+  .team-card {
+    background: rgba(255,255,255,0.8) !important;
+    border-color: $lm-border !important;
+    color: $lm-text;
+
+    &__name { color: $lm-text; }
+    &__meta, &__desc { color: $lm-text-3; }
+    &__actions button { color: $lm-text-3; &:hover { color: $lm-text; } }
+  }
+
+  .teams-page {
+    &__header h1 { color: $lm-text; }
+    &__filter { color: $lm-text-3; border-bottom-color: $lm-border; }
+    &__search {
+      background: rgba(255,255,255,0.75);
+      border-color: $lm-border;
+      input { color: $lm-text; &::placeholder { color: $lm-text-4; } }
+      svg { color: $lm-text-4; }
+    }
+  }
+
+  // ========================
+  // MEETINGS PAGE
+  // ========================
+  .meeting-card {
+    background: rgba(255,255,255,0.82) !important;
+    border-color: $lm-border !important;
+
+    &__title { color: $lm-text; }
+    &__meta, &__desc, time { color: $lm-text-3; }
+    &__host span { color: $lm-text-3; }
+  }
+
+  // ========================
+  // CHANNELS PAGE
+  // ========================
+  .channels-page {
+    &__list {
+      background: rgba(255,255,255,0.82) !important;
+      border-color: $lm-border !important;
+    }
+
+    &__row {
+      border-bottom-color: $lm-border;
+      &:hover { background: $lm-bg; }
+    }
+
+    &__name { color: $lm-text; }
+    &__meta, &__members { color: $lm-text-3; }
+  }
+
+  // ========================
+  // ALERTS / MISC
+  // ========================
+  .alert-message.error {
+    background: rgba(239,68,68,0.07);
+    border-color: rgba(239,68,68,0.18);
+    color: #dc2626;
+  }
+
+  .alert-message.success {
+    background: rgba(34,197,94,0.07);
+    border-color: rgba(34,197,94,0.18);
+    color: #16a34a;
+  }
+
+  // Scrollbars
+  ::-webkit-scrollbar-thumb {
+    background: rgba(100, 116, 139, 0.22) !important;
+    &:hover { background: rgba(100, 116, 139, 0.38) !important; }
+  }
+
+  // Generic text
+  h1, h2, h3, h4, h5, h6 { color: $lm-text; }
+  p { color: $lm-text-2; }
+}
