@@ -8,6 +8,8 @@ const DEFAULT_SETTINGS = {
   compactMode: false,
   desktopNotifications: false,
   emailDigest: false,
+  twoFactorAuth: false,
+  showOnlineStatus: true,
 };
 
 export function SettingsProvider({ children }) {
@@ -31,6 +33,11 @@ export function SettingsProvider({ children }) {
     });
   };
 
+  const isSettingKey = (key) => {
+    return Object.prototype.hasOwnProperty.call(DEFAULT_SETTINGS, key);
+  };
+
+  // Apply compact mode
   useEffect(() => {
     if (settings.compactMode) {
       document.body.classList.add("compact-mode");
@@ -39,8 +46,21 @@ export function SettingsProvider({ children }) {
     }
   }, [settings.compactMode]);
 
+  // Apply dark/light theme — sets data-theme on <html> and a class on <body>
+  useEffect(() => {
+    if (settings.darkMode) {
+      document.documentElement.setAttribute("data-theme", "dark");
+      document.body.classList.remove("light-mode");
+      document.body.classList.add("dark-mode");
+    } else {
+      document.documentElement.setAttribute("data-theme", "light");
+      document.body.classList.remove("dark-mode");
+      document.body.classList.add("light-mode");
+    }
+  }, [settings.darkMode]);
+
   return (
-    <SettingsContext.Provider value={{ settings, updateSetting }}>
+    <SettingsContext.Provider value={{ settings, updateSetting, isSettingKey }}>
       {children}
     </SettingsContext.Provider>
   );

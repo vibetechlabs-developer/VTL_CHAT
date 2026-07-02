@@ -2,15 +2,15 @@
    VTL CHAT — DESIGN TOKENS
 ========================================== */
 
-$bg-primary: #050816;
-$bg-secondary: #0b1020;
-$bg-surface: #0b1020;
-$bg-elevated: #111827;
+$bg-primary: var(--bg-primary, #050816);
+$bg-secondary: var(--bg-secondary, #0b1020);
+$bg-surface: var(--bg-surface, #0b1020);
+$bg-elevated: var(--bg-elevated, #111827);
 
-$text-primary: #ffffff;
-$text-secondary: #e2e8f0;
-$text-muted: #94a3b8;
-$text-dim: #64748b;
+$text-primary: var(--text-primary, #ffffff);
+$text-secondary: var(--text-secondary, #e2e8f0);
+$text-muted: var(--text-muted, #94a3b8);
+$text-dim: var(--text-dim, #64748b);
 
 $accent-purple: #7c3aed;
 $accent-purple-light: #a78bfa;
@@ -21,13 +21,13 @@ $accent-yellow: #f59e0b;
 $accent-red: #ef4444;
 $accent-pink: #ec4899;
 
-$glass-bg: rgba(255, 255, 255, 0.04);
-$glass-bg-hover: rgba(255, 255, 255, 0.08);
-$glass-border: rgba(255, 255, 255, 0.08);
-$glass-border-hover: rgba(255, 255, 255, 0.14);
+$glass-bg: var(--glass-bg, rgba(255, 255, 255, 0.04));
+$glass-bg-hover: var(--glass-bg-hover, rgba(255, 255, 255, 0.08));
+$glass-border: var(--glass-border, rgba(255, 255, 255, 0.08));
+$glass-border-hover: var(--glass-border-hover, rgba(255, 255, 255, 0.14));
 
-$border-light: rgba(255, 255, 255, 0.08);
-$border-medium: rgba(255, 255, 255, 0.12);
+$border-light: var(--border-light, rgba(255, 255, 255, 0.08));
+$border-medium: var(--border-medium, rgba(255, 255, 255, 0.12));
 $border-purple: rgba(124, 58, 237, 0.25);
 
 $radius-xs: 4px;

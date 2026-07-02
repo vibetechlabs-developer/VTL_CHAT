@@ -8,9 +8,9 @@
   padding: 0 1.5rem;
   height: 58px;
   min-height: 58px;
-  background: rgba(14, 17, 38, 0.6);
+  background: var(--bg-secondary, rgba(14, 17, 38, 0.6));
   backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--border-light, rgba(255, 255, 255, 0.06));
   gap: 1rem;
   flex-shrink: 0;
   position: sticky;
@@ -143,6 +143,7 @@
   }
 
   &__avatar {
+    position: relative;
     width: 30px;
     height: 30px;
     border-radius: 7px;
@@ -154,7 +155,23 @@
     flex-shrink: 0;
   }
 
+  &__avatar-status {
+    position: absolute;
+    bottom: -2.5px;
+    right: -2.5px;
+    width: 9.5px;
+    height: 9.5px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(14, 17, 38, 0.95);
+
+    &--online {
+      background: $accent-green;
+    }
+  }
+
+
   &__profile-info {
+
     display: flex;
     flex-direction: column;
     min-width: 0;

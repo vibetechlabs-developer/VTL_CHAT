@@ -159,6 +159,18 @@ export default function Dashboard() {
       error={error}
       unreadNotificationCount={unreadNotificationCount}
     >
+      {unreadNotificationCount > 0 && (
+        <div className="dash-top-notification">
+          <div className="dash-top-notification__info">
+            <span className="dash-top-notification__badge">New</span>
+            <p>You have {unreadNotificationCount} unread notification{unreadNotificationCount > 1 ? "s" : ""} waiting for your review.</p>
+          </div>
+          <Link to="/notifications" className="dash-top-notification__link">
+            View notifications &rarr;
+          </Link>
+        </div>
+      )}
+
       <section className="dash-hero">
         <div className="dash-hero__content">
           <h2>Your collaboration hub</h2>

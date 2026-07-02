@@ -12,11 +12,11 @@ import {
 import "./FloatingSidebar.scss";
 
 const navItems = [
+  { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/notifications", icon: Bell, label: "Activity" },
   { to: "/chat", icon: MessageSquare, label: "Chat" },
   { to: "/teams", icon: Users, label: "Teams" },
   { to: "/meetings", icon: Calendar, label: "Calendar" },
-  { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
 ];
 
 export default function FloatingSidebar({ onLogout, initials }) {

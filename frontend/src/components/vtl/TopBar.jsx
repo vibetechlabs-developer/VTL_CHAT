@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Search, Bell, Video, ChevronDown, User, Settings, LogOut } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useSettings } from "../../context/SettingsContext";
 import "./TopBar.scss";
 
 export default function TopBar({
@@ -16,6 +17,7 @@ export default function TopBar({
   unreadCount = 0,
   onLogout,
 }) {
+  const { settings } = useSettings();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -74,7 +76,10 @@ export default function TopBar({
             className="topbar__profile" 
             onClick={() => setDropdownOpen(!dropdownOpen)}
           >
-            <div className="topbar__avatar">{initials}</div>
+            <div className="topbar__avatar">
+              {initials}
+              {settings.showOnlineStatus && <span className="topbar__avatar-status topbar__avatar-status--online" />}
+            </div>
             <div className="topbar__profile-info">
               <span className="topbar__profile-name">{username}</span>
               <span className="topbar__profile-email">{email}</span>

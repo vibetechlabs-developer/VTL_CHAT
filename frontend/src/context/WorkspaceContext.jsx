@@ -87,19 +87,36 @@ export function WorkspaceProvider({ children }) {
 
   const { settings } = useSettings();
   const prevNotificationsRef = useRef([]);
+  const isInitialLoadRef = useRef(true);
 
   useEffect(() => {
+    // On initial load, populate previous ref without showing alerts
+    if (isInitialLoadRef.current) {
+      if (notifications.length > 0) {
+        prevNotificationsRef.current = notifications;
+        isInitialLoadRef.current = false;
+      }
+      return;
+    }
+
     // Request permission if desktop notifications are enabled and not yet granted
     if (settings.desktopNotifications && "Notification" in window && Notification.permission === "default") {
       Notification.requestPermission();
     }
-    // Determine new notifications compared to previous state
-    const newNotifs = notifications.filter((n) => !prevNotificationsRef.current.some((p) => p.id === n.id));
+
+    // Determine genuinely new notifications since last poll
+    const prevIds = new Set(prevNotificationsRef.current.map((p) => p.id));
+    const newNotifs = notifications.filter((n) => !prevIds.has(n.id));
+
     newNotifs.forEach((n) => {
       if (settings.desktopNotifications && "Notification" in window && Notification.permission === "granted") {
-        new Notification(n.title || "New Notification", { body: n.message || "" });
+        new Notification(n.title || "New Notification", {
+          body: n.message || "",
+          icon: "/favicon.ico",
+        });
       }
     });
+
     prevNotificationsRef.current = notifications;
   }, [notifications, settings.desktopNotifications]);
 

@@ -1,5 +1,6 @@
 import { ChevronDown, Plus, Hash, Lock, Loader2 } from "lucide-react";
 import { getInitials, getAvatarColor } from "../../utils/helpers";
+import { useSettings } from "../../context/SettingsContext";
 import "./ChannelSidebar.scss";
 
 export default function ChannelSidebar({
@@ -16,6 +17,7 @@ export default function ChannelSidebar({
   loading,
   onCreateChannel,
 }) {
+  const { settings } = useSettings();
   const textChannels = channels.filter((c) => c.channel_type !== "PRIVATE" && c.channel_type !== "DIRECT" && c.team === activeTeamId);
   const dmChannels = channels.filter((c) => c.channel_type === "DIRECT");
   const activeTeam = teams.find((t) => t.id === activeTeamId) || teams[0];
@@ -144,7 +146,9 @@ export default function ChannelSidebar({
           <div className="channel-sidebar__user-avatar">{initials}</div>
           <div className="channel-sidebar__user-info">
             <span className="channel-sidebar__user-name">{profile?.username || "You"}</span>
-            <span className="channel-sidebar__user-status">Online</span>
+            <span className={`channel-sidebar__user-status ${!settings.showOnlineStatus ? "channel-sidebar__user-status--offline" : ""}`}>
+              {settings.showOnlineStatus ? "Online" : "Invisible"}
+            </span>
           </div>
           <Lock size={14} className="channel-sidebar__user-lock" />
         </div>
