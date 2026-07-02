@@ -6,13 +6,10 @@ import {
   Plus,
   Hash,
   Lock,
-  MoreVertical,
   Bell,
   UserPlus,
   Video,
-  Search,
   Users,
-  Check,
   Shield,
   Loader2
 } from "lucide-react";
@@ -33,13 +30,10 @@ export default function ContextSidebar() {
     profile,
     notifications,
     meetings,
-    unreadNotificationCount,
     createChannel,
     createDirectMessageChannel,
     createTeam,
     addTeamMember,
-    getTeamMemberCount,
-    getChannelCountForTeam,
     markNotificationRead,
     markAllNotificationsRead,
   } = useWorkspace();

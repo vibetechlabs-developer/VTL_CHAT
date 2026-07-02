@@ -1,7 +1,23 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useConfirm } from "../../context/ConfirmContext";
-import { Hash, Pin, Bell, Users, Search, MoreHorizontal, Loader2, Paperclip, ExternalLink, X, Edit2, Trash2, Download, Eye } from "lucide-react";
+import {
+  MoreHorizontal,
+  Paperclip,
+  Smile,
+  Hash,
+  Download,
+  Eye,
+  Trash2,
+  Pin,
+  Edit2,
+  Search,
+  Users,
+  Bell,
+  Loader2,
+  ExternalLink,
+  X,
+} from "lucide-react";
 import {
   formatMessageTime,
   getInitials,
@@ -14,6 +30,34 @@ import {
   getChannelDisplayName,
 } from "../../utils/helpers";
 import "./MessageArea.scss";
+
+const renderContentWithMentions = (content, usersMap, onDMSelect) => {
+  if (!content) return null;
+  const mentionRegex = /(@[a-zA-Z0-9_]+)/g;
+  const parts = content.split(mentionRegex);
+  return parts.map((part, i) => {
+    if (part.startsWith("@")) {
+      const username = part.slice(1);
+      const user = Object.values(usersMap).find((u) => u.username === username);
+      if (user) {
+        return (
+          <span
+            key={i}
+            className="mention"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onDMSelect) onDMSelect(user.id);
+            }}
+          >
+            {part}
+          </span>
+        );
+      }
+      return <span key={i} className="mention mention--unknown">{part}</span>;
+    }
+    return part;
+  });
+};
 
 export default function MessageArea({
   channel,
@@ -30,6 +74,7 @@ export default function MessageArea({
   onDeleteMessage,
   onToggleMembers,
   onClearChat,
+  onDMSelect,
 }) {
   const confirm = useConfirm();
   const bottomRef = useRef(null);
@@ -55,7 +100,7 @@ export default function MessageArea({
       link.click();
       link.parentNode.removeChild(link);
       window.URL.revokeObjectURL(url);
-    } catch (error) {
+    } catch {
       window.open(fileUrl, "_blank");
     }
   };
@@ -382,7 +427,7 @@ export default function MessageArea({
                       </div>
                     </div>
                   ) : (
-                    displayContent && <p className="message-area__text">{displayContent}</p>
+                    displayContent && <p className="message-area__text">{renderContentWithMentions(displayContent, usersMap, onDMSelect)}</p>
                   )}
 
                   {msgAttachments.length > 0 && (
@@ -505,7 +550,7 @@ const getCleanMessageContent = (content, attachments) => {
   return content;
 };
 
-function handleOpenInNewTab(fileUrl, fileName) {
+function handleOpenInNewTab(fileUrl) {
   window.open(fileUrl, "_blank");
 }
 

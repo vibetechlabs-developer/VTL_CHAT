@@ -24,7 +24,7 @@ export function useChatSocket(channelId, onEvent, onReconnect) {
 
   useEffect(() => {
     if (!channelId) {
-      setConnectionStatus("disconnected");
+      setTimeout(() => setConnectionStatus("disconnected"), 0);
       return;
     }
 
