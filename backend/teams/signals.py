@@ -6,9 +6,21 @@ from notifications.models import Notification
 @receiver(post_save, sender=TeamMember)
 def create_team_member_notification(sender, instance, created, **kwargs):
     if created:
+        # Existing notification for the added user
         Notification.objects.create(
             recipient=instance.user,
             title="Added to team",
             message=f"You have been added to the team '{instance.team.name}' as a {instance.role.title()}.",
             notification_type="TEAM"
         )
+        # Create a system message visible to the team's channel(s)
+        from chat.models import Message
+        # Find a channel associated with the team (fallback to first channel)
+        channel = instance.team.channels.first()
+        if channel:
+            Message.objects.create(
+                sender=instance.user,  # could be the added user or a system user
+                channel=channel,
+                content=f"{instance.user.username} was added to the team '{instance.team.name}'.",
+                is_system=True,
+            )

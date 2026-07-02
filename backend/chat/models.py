@@ -28,6 +28,8 @@ class Message(models.Model):
 
     is_pinned = models.BooleanField(default=False)
 
+    is_system = models.BooleanField(default=False)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     updated_at = models.DateTimeField(auto_now=True)

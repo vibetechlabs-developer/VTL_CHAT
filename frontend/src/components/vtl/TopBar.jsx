@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Search, Bell, Video, ChevronDown, User, Settings, LogOut } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import "./TopBar.scss";
 
 export default function TopBar({
@@ -18,7 +18,6 @@ export default function TopBar({
 }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
-  const navigate = useNavigate();
 
   useEffect(() => {
     const handleClickOutside = (event) => {

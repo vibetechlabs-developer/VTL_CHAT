@@ -62,7 +62,7 @@ export default function Dashboard() {
       isPositive: true,
       color: "#7C3AED",
       gradientId: "s-teams",
-      sparkline: "M0,25 Q15,5 30,18 T60,8 T90,20 L100,5",
+      sparkline: "M0,25 C20,25 30,10 50,15 C70,20 80,8 100,12",
       icon: <Users size={20} />,
     },
     {
@@ -72,7 +72,7 @@ export default function Dashboard() {
       isPositive: true,
       color: "#2563EB",
       gradientId: "s-channels",
-      sparkline: "M0,20 Q20,10 40,25 T80,5 L100,15",
+      sparkline: "M0,20 C20,20 30,28 50,22 C70,16 80,10 100,15",
       icon: <Hash size={20} />,
     },
     {
@@ -82,7 +82,7 @@ export default function Dashboard() {
       isPositive: true,
       color: "#10B981",
       gradientId: "s-messages",
-      sparkline: "M0,28 Q10,15 30,22 T60,5 T90,12 L100,2",
+      sparkline: "M0,28 C15,28 25,12 45,18 C65,24 80,8 100,10",
       icon: <MessageSquare size={20} />,
     },
     {
@@ -92,7 +92,7 @@ export default function Dashboard() {
       isPositive: true,
       color: "#EF4444",
       gradientId: "s-meetings",
-      sparkline: "M0,5 Q30,8 50,25 T90,20 L100,28",
+      sparkline: "M0,25 C30,25 40,28 60,22 C80,16 90,15 100,18",
       icon: <Video size={20} />,
     },
   ];

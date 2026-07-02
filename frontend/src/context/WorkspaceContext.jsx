@@ -1,8 +1,9 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import * as workspaceApi from "../services/workspaceApi";
 import { extractErrorMessage } from "../utils/helpers";
+import { useSettings } from "./SettingsContext";
 
 const WorkspaceContext = createContext(null);
 
@@ -83,6 +84,24 @@ export function WorkspaceProvider({ children }) {
     const interval = setInterval(refreshAll, 30000);
     return () => clearInterval(interval);
   }, [navigate, refreshAll]);
+
+  const { settings } = useSettings();
+  const prevNotificationsRef = useRef([]);
+
+  useEffect(() => {
+    // Request permission if desktop notifications are enabled and not yet granted
+    if (settings.desktopNotifications && "Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+    // Determine new notifications compared to previous state
+    const newNotifs = notifications.filter((n) => !prevNotificationsRef.current.some((p) => p.id === n.id));
+    newNotifs.forEach((n) => {
+      if (settings.desktopNotifications && "Notification" in window && Notification.permission === "granted") {
+        new Notification(n.title || "New Notification", { body: n.message || "" });
+      }
+    });
+    prevNotificationsRef.current = notifications;
+  }, [notifications, settings.desktopNotifications]);
 
   const handleLogout = async () => {
     try {

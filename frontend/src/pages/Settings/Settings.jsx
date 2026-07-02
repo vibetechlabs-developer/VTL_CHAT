@@ -1,8 +1,8 @@
-import { useState } from "react";
 import { Bell, Globe, Shield, Palette, Keyboard } from "lucide-react";
 import AppLayout from "../../components/vtl/AppLayout";
 import GlassCard from "../../components/vtl/GlassCard";
 import { useWorkspace } from "../../context/WorkspaceContext";
+import { useSettings } from "../../context/SettingsContext";
 import "./Settings.scss";
 
 const sections = [
@@ -10,25 +10,24 @@ const sections = [
     title: "Appearance",
     icon: Palette,
     settings: [
-      { label: "Dark mode", desc: "Always use dark theme", toggle: true, default: true },
-      { label: "Compact mode", desc: "Reduce spacing in chat", toggle: true, default: false },
+      { label: "Dark mode", key: "darkMode", desc: "Always use dark theme", toggle: true },
+      { label: "Compact mode", key: "compactMode", desc: "Reduce spacing in chat", toggle: true },
     ],
   },
   {
     title: "Notifications",
     icon: Bell,
     settings: [
-      { label: "Desktop notifications", desc: "Show alerts for mentions and DMs", toggle: true, default: true },
-      { label: "Email digest", desc: "Weekly summary of activity", toggle: true, default: false },
-      { label: "Meeting reminders", desc: "Notify 15 minutes before meetings", toggle: true, default: true },
+      { label: "Desktop notifications", key: "desktopNotifications", desc: "Show alerts for mentions and DMs", toggle: true },
+      { label: "Email digest", key: "emailDigest", desc: "Weekly summary of activity", toggle: true },
     ],
   },
   {
     title: "Privacy & Security",
     icon: Shield,
     settings: [
-      { label: "Two-factor authentication", desc: "Add an extra layer of security", toggle: true, default: false },
-      { label: "Show online status", desc: "Let others see when you're active", toggle: true, default: true },
+      { label: "Two-factor authentication", desc: "Add an extra layer of security", toggle: true },
+      { label: "Show online status", desc: "Let others see when you're active", toggle: true },
     ],
   },
   {
@@ -41,14 +40,13 @@ const sections = [
   },
 ];
 
-function Toggle({ defaultOn = false }) {
-  const [on, setOn] = useState(defaultOn);
+function Toggle({ checked = false, onChange }) {
   return (
     <button
-      className={`settings-toggle ${on ? "settings-toggle--on" : ""}`}
-      onClick={() => setOn(!on)}
+      className={`settings-toggle ${checked ? "settings-toggle--on" : ""}`}
+      onClick={() => onChange(!checked)}
       role="switch"
-      aria-checked={on}
+      aria-checked={checked}
     >
       <span />
     </button>
@@ -64,6 +62,26 @@ export default function Settings() {
     handleLogout,
     unreadNotificationCount,
   } = useWorkspace();
+
+  const { settings, updateSetting } = useSettings();
+
+  const handleToggle = (key, value) => {
+    if (key === "desktopNotifications" && value === true) {
+      if ("Notification" in window) {
+        Notification.requestPermission().then((permission) => {
+          if (permission === "granted") {
+            updateSetting(key, true);
+          } else {
+            alert("Please allow notification permissions in your browser to enable this feature.");
+          }
+        });
+        return;
+      }
+    }
+    if (key) {
+      updateSetting(key, value);
+    }
+  };
 
   return (
     <AppLayout
@@ -92,7 +110,14 @@ export default function Settings() {
                     <span className="settings-row__label">{s.label}</span>
                     <span className="settings-row__desc">{s.desc}</span>
                   </div>
-                  {s.toggle ? <Toggle defaultOn={s.default} /> : <button className="settings-row__link">Change</button>}
+                  {s.toggle ? (
+                    <Toggle 
+                      checked={s.key ? settings[s.key] : false} 
+                      onChange={(val) => s.key ? handleToggle(s.key, val) : null} 
+                    />
+                  ) : (
+                    <button className="settings-row__link">Change</button>
+                  )}
                 </div>
               ))}
             </GlassCard>

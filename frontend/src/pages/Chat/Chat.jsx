@@ -23,7 +23,6 @@ export default function Chat() {
     handleLogout,
     teams,
     channels,
-    users,
     usersMap,
     teamMembers,
     reactions,
@@ -36,6 +35,7 @@ export default function Chat() {
     pinMessage,
     addReaction,
     uploadMessageAttachment,
+    createDirectMessageChannel,
   } = useWorkspace();
 
   const [channelMessages, setChannelMessages] = useState([]);
@@ -330,6 +330,7 @@ export default function Chat() {
             onDeleteMessage={handleDeleteMessage}
             onClearChat={handleClearChat}
             onToggleMembers={() => setShowMembers(!showMembers)}
+            onDMSelect={handleDMSelect}
           />
           <MessageInput
             channelName={getChannelDisplayName(activeChannel, profile?.id, usersMap)}
