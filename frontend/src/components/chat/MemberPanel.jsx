@@ -55,6 +55,7 @@ function MemberRow({ member, profile, badge, onDMSelect }) {
   const username = member.user?.username || "User";
   const isSelf = member.user?.id === profile?.id;
   const isOnline = !isSelf || settings.showOnlineStatus;
+  const avatarUrl = member.user?.avatar_url;
 
   return (
     <button 
@@ -63,8 +64,12 @@ function MemberRow({ member, profile, badge, onDMSelect }) {
         if (!isSelf && onDMSelect) onDMSelect(member.user.id);
       }}
     >
-      <div className="member-panel__avatar" style={{ background: getAvatarColor(username) }}>
-        {getInitials(username)}
+      <div className="member-panel__avatar" style={!avatarUrl ? { background: getAvatarColor(username) } : {}}>
+        {avatarUrl ? (
+          <img src={avatarUrl} alt={username} className="member-panel__avatar-img" />
+        ) : (
+          getInitials(username)
+        )}
         {isOnline && <span className="member-panel__status member-panel__status--online" />}
       </div>
       <div className="member-panel__info">

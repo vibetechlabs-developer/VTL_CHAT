@@ -11,6 +11,7 @@ export default function TopBar({
   searchValue,
   onSearchChange,
   initials,
+  avatarUrl,
   username,
   email,
   showSearch = true,
@@ -77,7 +78,11 @@ export default function TopBar({
             onClick={() => setDropdownOpen(!dropdownOpen)}
           >
             <div className="topbar__avatar">
-              {initials}
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="Avatar" className="topbar__avatar-img" />
+              ) : (
+                initials
+              )}
               {settings.showOnlineStatus && <span className="topbar__avatar-status topbar__avatar-status--online" />}
             </div>
             <div className="topbar__profile-info">

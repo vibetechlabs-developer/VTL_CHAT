@@ -17,6 +17,9 @@ import {
   Loader2,
   ExternalLink,
   X,
+  PhoneCall,
+  PhoneOff,
+  Video,
 } from "lucide-react";
 import {
   formatMessageTime,
@@ -67,6 +70,7 @@ export default function MessageArea({
   reactions = [],
   attachments = [],
   loading,
+  typingUsers = {},
   onReact,
   reactingId,
   onPin,
@@ -75,6 +79,8 @@ export default function MessageArea({
   onToggleMembers,
   onClearChat,
   onDMSelect,
+  onVideoCall,
+  onAudioCall,
 }) {
   const confirm = useConfirm();
   const bottomRef = useRef(null);
@@ -200,6 +206,28 @@ export default function MessageArea({
           >
             <Search size={18} />
           </button>
+
+          {/* Call buttons — shown in all channels (like Teams) */}
+          {onAudioCall && (
+            <button
+              type="button"
+              title="Start audio call"
+              className="message-area__call-btn message-area__call-btn--audio"
+              onClick={onAudioCall}
+            >
+              <PhoneCall size={18} />
+            </button>
+          )}
+          {onVideoCall && (
+            <button
+              type="button"
+              title="Start video call"
+              className="message-area__call-btn message-area__call-btn--video"
+              onClick={onVideoCall}
+            >
+              <Video size={18} />
+            </button>
+          )}
           <button 
             type="button" 
             title="Pinned"
@@ -252,14 +280,23 @@ export default function MessageArea({
       <div className="message-area__messages">
         <div className="message-area__welcome">
           <div className="message-area__welcome-icon">
-            {channel?.channel_type === "DIRECT" ? (
-              <div
-                className="message-area__avatar message-area__avatar--dm"
-                style={{ background: getAvatarColor(channelName), width: 64, height: 64, fontSize: '1.5rem', marginBottom: 0 }}
-              >
-                {getInitials(channelName)}
-              </div>
-            ) : (
+            {channel?.channel_type === "DIRECT" ? (() => {
+              const otherId = channel.members?.find((id) => Number(id) !== Number(profile?.id)) || profile?.id;
+              const otherUser = usersMap[otherId];
+              const welcomeAvatarUrl = otherUser?.avatar_url;
+              return (
+                <div
+                  className="message-area__avatar message-area__avatar--dm"
+                  style={!welcomeAvatarUrl ? { background: getAvatarColor(channelName), width: 64, height: 64, fontSize: '1.5rem', marginBottom: 0 } : { width: 64, height: 64, marginBottom: 0, overflow: 'hidden' }}
+                >
+                  {welcomeAvatarUrl ? (
+                    <img src={welcomeAvatarUrl} alt={channelName} className="message-area__avatar-img" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '7px' }} />
+                  ) : (
+                    getInitials(channelName)
+                  )}
+                </div>
+              );
+            })() : (
               <Hash size={32} />
             )}
           </div>
@@ -293,6 +330,21 @@ export default function MessageArea({
           }
 
           return displayedMessages.map((msg, i) => {
+          if (msg.is_system) {
+            const isEnd = msg.content.toLowerCase().includes("ended");
+            return (
+              <div key={msg.id} className="message-area__system-msg">
+                <div className="message-area__system-msg-content">
+                  {isEnd
+                    ? <PhoneOff size={13} className="message-area__system-msg-icon message-area__system-msg-icon--end" />
+                    : <PhoneCall size={13} className="message-area__system-msg-icon message-area__system-msg-icon--start" />
+                  }
+                  <span>{msg.content}</span>
+                </div>
+              </div>
+            );
+          }
+
           const sender = usersMap[msg.sender];
           const username = sender?.username || (msg.sender === profile?.id ? profile.username : "User");
           const isSelf = msg.sender === profile?.id;
@@ -316,9 +368,13 @@ export default function MessageArea({
               {!prevSame && (
                 <div
                   className="message-area__avatar"
-                  style={{ background: getAvatarColor(username) }}
+                  style={!sender?.avatar_url ? { background: getAvatarColor(username) } : { overflow: 'hidden' }}
                 >
-                  {getInitials(username)}
+                  {sender?.avatar_url ? (
+                    <img src={sender.avatar_url} alt={username} className="message-area__avatar-img" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '7px' }} />
+                  ) : (
+                    getInitials(username)
+                  )}
                 </div>
               )}
               <div className="message-area__bubble-wrap">
@@ -520,6 +576,25 @@ export default function MessageArea({
         });
         })()}
         <div ref={bottomRef} />
+
+        {/* Typing Indicator */}
+        {Object.keys(typingUsers).length > 0 && (() => {
+          const names = Object.values(typingUsers).map((u) => u.username);
+          const label =
+            names.length === 1
+              ? `${names[0]} is typing`
+              : names.length === 2
+              ? `${names[0]} and ${names[1]} are typing`
+              : `${names[0]} and ${names.length - 1} others are typing`;
+          return (
+            <div className="message-area__typing">
+              <span className="message-area__typing-label">{label}</span>
+              <span className="message-area__typing-dots">
+                <span /><span /><span />
+              </span>
+            </div>
+          );
+        })()}
       </div>
 
       {previewAttachment && createPortal(

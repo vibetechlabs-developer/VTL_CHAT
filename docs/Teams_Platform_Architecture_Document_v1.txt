@@ -1,0 +1,36 @@
+Teams-Like Internal Collaboration Platform
+Architecture Document
+Version 1.0
+System Overview
+Frontend: React + Vite
+Backend: Django + DRF
+Realtime: Django Channels + Redis
+Database: PostgreSQL
+Calls/Meetings: WebRTC + STUN/TURN
+Storage: Object Storage
+Deployment: Docker + Nginx
+High-Level Architecture
+
+React Frontend
+      ↓
+REST API + WebSocket
+      ↓
+Django + Channels
+      ↓
+Redis + PostgreSQL
+      ↓
+WebRTC + TURN
+      ↓
+Storage + Notifications
+
+Main Modules
+Authentication
+Teams & Groups
+Chat
+Meetings
+Audio/Video
+Files
+Notifications
+Admin Dashboard
+Deployment Overview
+Frontend and backend are deployed separately with reverse proxy, SSL, and scalable media services.

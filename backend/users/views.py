@@ -134,17 +134,9 @@ class ProfileView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-
         user = request.user
-
-        return Response(
-            {
-                "id": user.id,
-                "email": user.email,
-                "username": user.username
-            },
-            status=status.HTTP_200_OK
-        )
+        serializer = UserSerializer(user, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 class RefreshTokenView(APIView):
 
@@ -243,7 +235,11 @@ class UserDetailView(APIView):
             )
         if user is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        serializer = UserSerializer(user, data=request.data, partial=True)
+        # Support multipart (avatar file upload) by passing both request.data and request.FILES
+        data = request.data.copy()
+        if 'avatar' in request.FILES:
+            data['avatar'] = request.FILES['avatar']
+        serializer = UserSerializer(user, data=data, partial=True, context={'request': request})
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)

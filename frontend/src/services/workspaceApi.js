@@ -3,6 +3,13 @@ import api from "./api";
 export const getProfile = () => api.get("/users/profile/");
 export const getUsers = () => api.get("/users/");
 export const updateUser = (id, data) => api.put(`/users/${id}/`, data);
+export const updateUserAvatar = (id, file) => {
+  const form = new FormData();
+  form.append("avatar", file);
+  return api.put(`/users/${id}/`, form, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+};
 export const logoutUser = (refresh) => api.post("/users/logout/", { refresh });
 
 export const getOrganizations = () => api.get("/teams/organizations/");
@@ -48,6 +55,11 @@ export const joinMeeting = (meetingId, data = {}) =>
   api.post(`/meetings/${meetingId}/participants/`, data);
 export const getMeetingParticipants = (meetingId) =>
   api.get(`/meetings/${meetingId}/participants/`);
+export const updateParticipantStatus = (meetingId, participantId, data) =>
+  api.put(`/meetings/${meetingId}/participants/${participantId}/`, data);
+
+export const sendReadReceipt = (channelId, messageId) =>
+  api.post("/messages/read-receipt/", { channel: channelId, message: messageId });
 
 export const getNotifications = () => api.get("/notifications/");
 export const updateNotification = (id, data) => api.put(`/notifications/${id}/`, data);

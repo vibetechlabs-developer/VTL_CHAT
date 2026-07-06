@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 
 const getWsBaseUrl = () => {
   const configured = import.meta.env.VITE_WS_URL;
@@ -12,6 +12,7 @@ const getWsBaseUrl = () => {
 export function useChatSocket(channelId, onEvent, onReconnect) {
   const onEventRef = useRef(onEvent);
   const onReconnectRef = useRef(onReconnect);
+  const socketRef = useRef(null);
   const [connectionStatus, setConnectionStatus] = useState("disconnected");
 
   useEffect(() => {
@@ -46,6 +47,7 @@ export function useChatSocket(channelId, onEvent, onReconnect) {
 
       const wsUrl = `${getWsBaseUrl()}/ws/chat/${channelId}/?token=${encodeURIComponent(token)}`;
       socket = new WebSocket(wsUrl);
+      socketRef.current = socket;
 
       socket.onopen = () => {
         if (isCleanUp) {
@@ -71,6 +73,7 @@ export function useChatSocket(channelId, onEvent, onReconnect) {
       socket.onclose = () => {
         if (isCleanUp) return;
         console.warn('WebSocket closed, attempting reconnect');
+        socketRef.current = null;
         setConnectionStatus("disconnected");
         scheduleReconnect();
       };
@@ -93,6 +96,7 @@ export function useChatSocket(channelId, onEvent, onReconnect) {
 
     return () => {
       isCleanUp = true;
+      socketRef.current = null;
       if (socket) {
         socket.close();
       }
@@ -102,5 +106,16 @@ export function useChatSocket(channelId, onEvent, onReconnect) {
     };
   }, [channelId]);
 
-  return { connectionStatus };
+  /**
+   * Send a raw JSON message over the WebSocket.
+   * @param {object} data – plain JS object to send
+   */
+  const sendSocketMessage = useCallback((data) => {
+    const socket = socketRef.current;
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify(data));
+    }
+  }, []);
+
+  return { connectionStatus, sendSocketMessage };
 }

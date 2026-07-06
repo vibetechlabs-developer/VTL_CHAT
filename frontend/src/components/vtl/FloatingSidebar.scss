@@ -121,6 +121,14 @@
     @include flex-center;
     text-transform: uppercase;
     border: 2px solid rgba(124, 58, 237, 0.4);
+    overflow: hidden;
+  }
+
+  &__avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
   }
 
   &__footer {

@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import * as workspaceApi from "../services/workspaceApi";
 import { extractErrorMessage } from "../utils/helpers";
 import { useSettings } from "./SettingsContext";
+import { useGlobalSocket } from "../hooks/useGlobalSocket";
 
 const WorkspaceContext = createContext(null);
 
@@ -81,11 +82,32 @@ export function WorkspaceProvider({ children }) {
       }
     };
     init();
-    const interval = setInterval(refreshAll, 30000);
+    // Polling is now a fallback – real-time updates come via global WebSocket
+    const interval = setInterval(refreshAll, 120000);
     return () => clearInterval(interval);
   }, [navigate, refreshAll]);
 
   const { settings } = useSettings();
+
+  // --- Global WebSocket for real-time notifications ---
+  const handleGlobalEvent = useCallback((event) => {
+    if (event?.type === "notification" && event.payload) {
+      const n = event.payload;
+      setNotifications((prev) => {
+        if (prev.some((x) => x.id === n.id)) return prev;
+        return [n, ...prev];
+      });
+      // Show desktop notification
+      if (settings.desktopNotifications && "Notification" in window && Notification.permission === "granted") {
+        new Notification(n.title || "New Notification", {
+          body: n.message || "",
+          icon: "/favicon.ico",
+        });
+      }
+    }
+  }, [settings.desktopNotifications]);
+
+  useGlobalSocket(handleGlobalEvent);
   const prevNotificationsRef = useRef([]);
   const isInitialLoadRef = useRef(true);
 
@@ -135,6 +157,12 @@ export function WorkspaceProvider({ children }) {
 
   const updateProfile = async (data) => {
     const res = await workspaceApi.updateUser(profile.id, data);
+    setProfile(res.data);
+    return res.data;
+  };
+
+  const updateProfileAvatar = async (file) => {
+    const res = await workspaceApi.updateUserAvatar(profile.id, file);
     setProfile(res.data);
     return res.data;
   };
@@ -306,6 +334,7 @@ export function WorkspaceProvider({ children }) {
     toggleReaction,
     addReaction: toggleReaction,
     uploadMessageAttachment,
+    updateProfileAvatar,
   };
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
