@@ -1,0 +1,124 @@
+Teams-Like Internal Collaboration Platform
+Part 2 – Detailed User Stories + Acceptance Criteria (Professional SRS Style)
+Version 1.0
+Document Purpose
+This document provides detailed user stories with acceptance criteria for a Teams-like internal collaboration platform. Stories are organized by epics and include professional SRS-style acceptance conditions.
+Authentication & User Management
+User Registration
+User Story:
+As a new user, I want to register using email so that I can access the platform.
+Acceptance Criteria:
+System shall validate email format.
+System shall prevent duplicate registrations.
+Verification email or OTP shall be sent.
+User account shall remain inactive until verification.
+Secure Login
+User Story:
+As a user, I want to securely log in so that only authorized users can access my account.
+Acceptance Criteria:
+Valid credentials shall authenticate the user.
+Invalid credentials shall show error message.
+JWT/session shall be created after login.
+Multiple failed attempts shall trigger security rules.
+Teams & Groups
+Create Team
+User Story:
+As a user, I want to create a team so that members can collaborate together.
+Acceptance Criteria:
+User shall provide team name.
+System shall create team successfully.
+Creator shall become team owner.
+Team visibility shall support public/private settings.
+Manage Members
+User Story:
+As a team owner, I want to add or remove members.
+Acceptance Criteria:
+Owner/admin shall invite users.
+Permissions shall restrict unauthorized removal.
+Invitation notifications shall be sent.
+Chat & Messaging
+One-to-One Chat
+User Story:
+As a user, I want to send instant messages to another user.
+Acceptance Criteria:
+Message shall be delivered in real time.
+Offline messages shall sync later.
+Message timestamps shall be visible.
+Delivery and read status shall be displayed.
+Group Chat
+User Story:
+As a user, I want to send messages in groups.
+Acceptance Criteria:
+Group messages shall reach all participants.
+Typing indicators shall appear.
+Users shall react using emojis.
+Search shall retrieve previous messages.
+Audio & Video Calls
+Audio Call
+User Story:
+As a user, I want to make an audio call.
+Acceptance Criteria:
+Call notification shall appear.
+Users shall mute/unmute.
+Call history shall be stored.
+Video Meeting
+User Story:
+As a user, I want to create a video meeting.
+Acceptance Criteria:
+Meeting link shall be generated.
+Participants shall join through link.
+Camera and microphone controls shall work.
+Screen sharing shall be supported.
+Meetings
+Meeting Scheduling
+User Story:
+As a user, I want to schedule meetings.
+Acceptance Criteria:
+Date and time shall be configurable.
+Invitations shall be sent.
+Reminders shall notify participants.
+Meeting Recording
+User Story:
+As a host, I want to record meetings.
+Acceptance Criteria:
+Recording permission shall be controlled.
+Recording shall be stored securely.
+Playback shall be available after meeting.
+File Sharing
+Upload Files
+User Story:
+As a user, I want to upload files in chat and teams.
+Acceptance Criteria:
+System shall support defined file types.
+Upload progress shall be visible.
+Storage permission shall be validated.
+File Permissions
+User Story:
+As a user, I want controlled file access.
+Acceptance Criteria:
+Owner shall define access rules.
+Unauthorized access shall be denied.
+Download actions shall be logged.
+Notifications
+Real-Time Alerts
+User Story:
+As a user, I want instant notifications.
+Acceptance Criteria:
+Message notifications shall appear.
+Mention notifications shall appear.
+Meeting reminders shall be delivered.
+Admin Dashboard
+Platform Monitoring
+User Story:
+As an admin, I want monitoring and analytics.
+Acceptance Criteria:
+Active users shall be displayed.
+Logs shall be available.
+Storage usage shall be visible.
+Admin shall suspend accounts if needed.
+Priority Classification
+High Priority: Authentication, Chat, Calls, Meetings
+Medium Priority: File Sharing, Notifications
+Low Priority: Advanced Analytics and Future AI Features
+Next Document Scope
+Part 3 may include workflow diagrams, permission matrix, API-level requirements, database mapping, and system architecture.

@@ -13,6 +13,7 @@ const COMMON_EMOJIS = [
 export default function MessageInput({
   channelName = "general",
   onSend,
+  onTyping,
   disabled,
   sending,
   members = [],
@@ -24,6 +25,7 @@ export default function MessageInput({
   const fileInputRef = useRef(null);
   const inputRef = useRef(null);
   const containerRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
 
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showMentions, setShowMentions] = useState(false);
@@ -68,6 +70,13 @@ export default function MessageInput({
   const handleTextChange = (e) => {
     const val = e.target.value;
     setContent(val);
+
+    // Typing indicator logic
+    if (onTyping) {
+      onTyping(true);
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = setTimeout(() => onTyping(false), 2000);
+    }
 
     const selectionStart = e.target.selectionStart;
     const textBeforeCursor = val.substring(0, selectionStart);

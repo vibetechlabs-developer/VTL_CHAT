@@ -100,6 +100,45 @@
         background: rgba(124, 58, 237, 0.15);
       }
     }
+
+    // ── Call buttons (Teams style) ──────────────────────────────────────
+    &__call-btn {
+      position: relative;
+      width: 34px !important;
+      height: 34px !important;
+      border-radius: 50% !important;
+      transition: background 0.18s ease, color 0.18s ease, transform 0.15s ease !important;
+
+      &--audio {
+        color: #3ecf8e !important;
+
+        &:hover {
+          background: rgba(62, 207, 142, 0.15) !important;
+          color: #3ecf8e !important;
+          transform: scale(1.1);
+        }
+
+        &:active {
+          transform: scale(0.95);
+          background: rgba(62, 207, 142, 0.25) !important;
+        }
+      }
+
+      &--video {
+        color: #8ab4f8 !important;
+
+        &:hover {
+          background: rgba(138, 180, 248, 0.15) !important;
+          color: #8ab4f8 !important;
+          transform: scale(1.1);
+        }
+
+        &:active {
+          transform: scale(0.95);
+          background: rgba(138, 180, 248, 0.25) !important;
+        }
+      }
+    }
   }
 
   &__messages {
@@ -764,6 +803,41 @@
       padding: 0.2rem 0.5rem;
       font-size: 0.75rem;
       height: auto;
+    }
+  }
+
+  &__system-msg {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0.6rem 0;
+    width: 100%;
+    animation: fadeIn 0.2s ease;
+
+    &-content {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 0.4rem 1.25rem;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      color: $text-muted;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      font-weight: 500;
+    }
+
+    &-icon {
+      flex-shrink: 0;
+      
+      &--start {
+        color: #3ecf8e;
+      }
+      
+      &--end {
+        color: #ea4335;
+      }
     }
   }
 }

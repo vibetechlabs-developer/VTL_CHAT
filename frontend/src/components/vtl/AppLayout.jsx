@@ -49,6 +49,7 @@ export default function AppLayout({
       <FloatingSidebar
         onLogout={onLogout}
         initials={initials}
+        avatarUrl={profile?.avatar_url}
       />
 
       {/* Column B: Context-aware Secondary Sidebar */}
@@ -64,6 +65,7 @@ export default function AppLayout({
           onSearchChange={onSearchChange}
           showSearch={showSearch}
           initials={initials}
+          avatarUrl={profile?.avatar_url}
           username={profile?.username}
           email={profile?.email}
           unreadCount={unreadNotificationCount}

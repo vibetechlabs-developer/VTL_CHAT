@@ -10,11 +10,15 @@ def create_meeting_notification(sender, instance, created, **kwargs):
         team = channel.team
         host = instance.host
         
-        # Get all other team members
-        other_members = team.members.exclude(user=host)
-        for member in other_members:
+        # Get other users to notify
+        if team:
+            other_recipients = [m.user for m in team.members.exclude(user=host)]
+        else:
+            other_recipients = list(channel.members.exclude(id=host.id))
+            
+        for recipient in other_recipients:
             Notification.objects.create(
-                recipient=member.user,
+                recipient=recipient,
                 title="New meeting scheduled",
                 message=f"Meeting '{instance.title}' has been scheduled in #{channel.name} by {host.username}.",
                 notification_type="MEETING"

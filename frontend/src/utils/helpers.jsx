@@ -120,14 +120,18 @@ export const NOTIFICATION_ICONS = {
 };
 
 export function extractErrorMessage(err) {
+  if (!err) return "Something went wrong. Please try again.";
+  if (typeof err === "string") return err;
   const data = err?.response?.data;
-  if (!data) return "Something went wrong. Please try again.";
-  if (typeof data === "string") return data;
-  if (data.error) return data.error;
-  if (data.detail) return data.detail;
-  const firstKey = Object.keys(data)[0];
-  if (firstKey && Array.isArray(data[firstKey])) return data[firstKey][0];
-  if (firstKey) return String(data[firstKey]);
+  if (data) {
+    if (typeof data === "string") return data;
+    if (data.error) return data.error;
+    if (data.detail) return data.detail;
+    const firstKey = Object.keys(data)[0];
+    if (firstKey && Array.isArray(data[firstKey])) return data[firstKey][0];
+    if (firstKey) return String(data[firstKey]);
+  }
+  if (err.message) return err.message;
   return "Something went wrong. Please try again.";
 }
 

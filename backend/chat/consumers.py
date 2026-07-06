@@ -36,12 +36,53 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.close()
             return
 
+        self.user = user
         await self.channel_layer.group_add(self.room_group, self.channel_name)
         await self.accept()
 
     async def disconnect(self, close_code):
         if hasattr(self, "room_group"):
+            # Broadcast that user stopped typing on disconnect
+            if hasattr(self, "user") and self.user.is_authenticated:
+                await self.channel_layer.group_send(
+                    self.room_group,
+                    {
+                        "type": "chat.event",
+                        "data": {
+                            "type": "typing",
+                            "user_id": self.user.id,
+                            "username": self.user.username,
+                            "is_typing": False,
+                        },
+                    },
+                )
             await self.channel_layer.group_discard(self.room_group, self.channel_name)
+
+    async def receive(self, text_data):
+        """Handle incoming WebSocket messages from clients."""
+        try:
+            data = json.loads(text_data)
+        except (json.JSONDecodeError, TypeError):
+            return
+
+        action = data.get("action")
+
+        if action == "typing":
+            # Broadcast typing indicator to the channel group (excluding sender)
+            user = getattr(self, "user", None)
+            if user and user.is_authenticated:
+                await self.channel_layer.group_send(
+                    self.room_group,
+                    {
+                        "type": "chat.event",
+                        "data": {
+                            "type": "typing",
+                            "user_id": user.id,
+                            "username": user.username,
+                            "is_typing": data.get("is_typing", True),
+                        },
+                    },
+                )
 
     async def chat_event(self, event):
         await self.send(text_data=json.dumps(event["data"]))

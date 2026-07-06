@@ -1,0 +1,594 @@
+@use "../../styles/variables" as *;
+@use "../../styles/mixins" as *;
+
+// ─── Palette ──────────────────────────────────────────────────────────────────
+$gm-bg:        #202124;
+$gm-surface:   #2d2d30;
+$gm-surface2:  #3c4043;
+$gm-border:    rgba(255, 255, 255, 0.1);
+$gm-text:      #e8eaed;
+$gm-text-dim:  #9aa0a6;
+$gm-accent:    #8ab4f8;
+$gm-danger:    #ea4335;
+$gm-active:    #188038;
+$gm-tile-bg:   #1a1b1e;
+
+// Teams palette
+$teams-bg:     #1b1b1c;
+$teams-card:   #292929;
+$teams-purple: #6264a7;
+$teams-border: rgba(255, 255, 255, 0.06);
+
+// ─── Animations ───────────────────────────────────────────────────────────────
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes teams-ring-1 {
+  0%   { transform: scale(1);   opacity: 0.5; }
+  100% { transform: scale(2);   opacity: 0;   }
+}
+
+@keyframes teams-ring-2 {
+  0%   { transform: scale(1);   opacity: 0.35; }
+  100% { transform: scale(2.5); opacity: 0;   }
+}
+
+@keyframes teams-ring-3 {
+  0%   { transform: scale(1);   opacity: 0.2; }
+  100% { transform: scale(3);   opacity: 0;   }
+}
+
+// ─── Loading & Error ──────────────────────────────────────────────────────────
+.gmeet-loading,
+.gmeet-error {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  background: $gm-bg;
+  color: $gm-text;
+  text-align: center;
+  padding: 2rem;
+
+  h3, h2 { font-size: 1.5rem; font-weight: 600; color: $gm-text; }
+  p       { font-size: 0.95rem; color: $gm-text-dim; max-width: 400px; }
+
+  .spin { color: $gm-accent; animation: spin 1s linear infinite; }
+  svg:first-child:not(.spin) { color: $gm-danger; }
+}
+
+.gmeet-loading__spinner {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: rgba($gm-accent, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// ─── Root shell ───────────────────────────────────────────────────────────────
+.gmeet {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: 'Segoe UI', 'Google Sans', 'Roboto', sans-serif;
+  animation: fadeIn 0.3s ease;
+  color: $gm-text;
+
+  &--audio-mode { background: $teams-bg; }
+  &--video-mode { background: $gm-bg; }
+}
+
+// ─── Header ───────────────────────────────────────────────────────────────────
+.gmeet__header {
+  height: 56px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.25rem;
+  border-bottom: 1px solid $gm-border;
+  z-index: 10;
+  background: inherit;
+}
+
+.gmeet__header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.gmeet__call-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: $gm-text;
+}
+
+.gmeet__call-icon {
+  color: $gm-accent;
+}
+
+.gmeet__timer {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: $gm-text-dim;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+.gmeet__header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.gmeet__participants-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.7rem;
+  background: $gm-surface;
+  border: 1px solid $gm-border;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: $gm-text-dim;
+}
+
+// ─── TEAMS AUDIO CALL LAYOUT ──────────────────────────────────────────────────
+.teams-call {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  overflow: hidden;
+  background: $teams-bg;
+}
+
+.teams-call__grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1.75rem;
+  max-width: 1100px;
+  width: 100%;
+
+  // Constrain to reasonable widths based on participant count
+  &--count-1 { max-width: 320px; }
+  &--count-2 { max-width: 700px; }
+  &--count-3,
+  &--count-4 { max-width: 900px; }
+  &--count-5,
+  &--count-6 { max-width: 1100px; }
+}
+
+// Teams-style participant card
+.teams-card {
+  position: relative;
+  width: 260px;
+  height: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  background: $teams-card;
+  border-radius: 12px;
+  border: 1.5px solid $teams-border;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  flex-shrink: 0;
+
+  &--speaking {
+    border-color: rgba($teams-purple, 0.6);
+    box-shadow: 0 0 0 1px rgba($teams-purple, 0.2), 0 8px 32px rgba(0, 0, 0, 0.35);
+  }
+
+  &--muted {
+    border-color: $teams-border;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  }
+}
+
+// Concentric ring animations (Teams-style outward waves)
+.teams-card__rings {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.teams-card__ring {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: transparent;
+  border: 2px solid rgba($teams-purple, 0.55);
+
+  &--1 {
+    animation: teams-ring-1 2.2s ease-out infinite;
+  }
+  &--2 {
+    animation: teams-ring-2 2.2s ease-out 0.55s infinite;
+  }
+  &--3 {
+    animation: teams-ring-3 2.2s ease-out 1.1s infinite;
+  }
+}
+
+.teams-card__avatar-wrap {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin-bottom: 1.25rem;
+  z-index: 1;
+}
+
+.teams-card__avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2.5px solid rgba(255, 255, 255, 0.12);
+  transition: border-color 0.25s ease;
+
+  .teams-card--speaking & {
+    border-color: $teams-purple;
+  }
+
+  span {
+    font-size: 2.5rem;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: 0.02em;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  }
+}
+
+.teams-card__mute-badge {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: $gm-danger;
+  border: 3px solid $teams-card;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  z-index: 2;
+}
+
+.teams-card__name {
+  z-index: 1;
+  span {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
+    letter-spacing: 0.01em;
+  }
+}
+
+// ─── GOOGLE MEET VIDEO LAYOUT ─────────────────────────────────────────────────
+.meet-grid {
+  flex: 1;
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  overflow: hidden;
+  align-content: center;
+  justify-content: center;
+  position: relative;
+  background: $gm-bg;
+
+  &--count-1 {
+    grid-template-columns: minmax(300px, 900px);
+    grid-template-rows: 1fr;
+  }
+
+  &--count-2 {
+    grid-template-columns: repeat(2, minmax(280px, 680px));
+    grid-template-rows: 1fr;
+
+    @media (max-width: 700px) {
+      grid-template-columns: 1fr;
+      grid-template-rows: repeat(2, 1fr);
+    }
+  }
+
+  &--count-3,
+  &--count-4 {
+    grid-template-columns: repeat(2, minmax(240px, 560px));
+    grid-template-rows: repeat(2, 1fr);
+  }
+
+  &--count-5,
+  &--count-6 {
+    grid-template-columns: repeat(3, minmax(200px, 400px));
+    grid-template-rows: repeat(2, 1fr);
+  }
+
+  &--count-7,
+  &--count-8,
+  &--count-9 {
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+  }
+}
+
+// Meet-style video tile
+.meet-tile {
+  position: relative;
+  background: $gm-tile-bg;
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 180px;
+  border: 1.5px solid transparent;
+  transition: border-color 0.2s ease;
+
+  &:hover { border-color: rgba(255, 255, 255, 0.12); }
+
+  &--self { border-color: rgba($gm-accent, 0.15); }
+
+  &--solo {
+    min-height: 400px;
+  }
+
+  &__video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+
+    &--mirror { transform: scaleX(-1); }
+    &--hidden { display: none; }
+  }
+
+  &__avatar {
+    width: 88px;
+    height: 88px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    span {
+      font-size: 2rem;
+      font-weight: 600;
+      color: #fff;
+      text-transform: uppercase;
+    }
+  }
+
+  // Gradient overlay at the bottom for name label
+  &__overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 1.5rem 0.75rem 0.6rem;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.65) 0%, transparent 100%);
+    display: flex;
+    align-items: flex-end;
+  }
+
+  &__name {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+
+    span {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: white;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+    }
+  }
+
+  &__mute-icon { color: $gm-danger; flex-shrink: 0; }
+}
+
+// ─── PiP Self-View ────────────────────────────────────────────────────────────
+.meet-pip {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  width: 180px;
+  height: 102px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: $gm-tile-bg;
+  border: 2px solid rgba($gm-accent, 0.3);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+  transition: box-shadow 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6);
+  }
+
+  &__video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+
+    &--mirror { transform: scaleX(-1); }
+    &--hidden { display: none; }
+  }
+
+  &__avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    span {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #fff;
+    }
+  }
+
+  &__label {
+    position: absolute;
+    bottom: 4px;
+    left: 6px;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 500;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  }
+}
+
+// ─── Control Bar ──────────────────────────────────────────────────────────────
+.gmeet__controls {
+  height: 84px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 1.5rem;
+  border-top: 1px solid $gm-border;
+  background: inherit;
+  position: relative;
+
+  .gmeet--audio-mode & { background: $teams-bg; }
+  .gmeet--video-mode & { background: $gm-bg; }
+}
+
+.gmeet__controls-center {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+// Individual control button
+.ctrl-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.28rem;
+  min-width: 64px;
+  height: 64px;
+  padding: 0 0.5rem;
+  background: transparent;
+  border: none;
+  border-radius: 14px;
+  color: $gm-text;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  flex-shrink: 0;
+
+  &:hover { background: $gm-surface; }
+  &:active { background: $gm-surface2; }
+
+  &--off {
+    .ctrl-btn__icon { background: $gm-danger; color: #fff; }
+    .ctrl-btn__label { color: $gm-danger; }
+  }
+
+  &--active {
+    .ctrl-btn__icon { background: $gm-active; color: #fff; }
+    .ctrl-btn__label { color: $gm-active; }
+  }
+
+  &--audio-active {
+    .ctrl-btn__icon {
+      background: rgba($teams-purple, 0.25);
+      color: color-mix(in srgb, $teams-purple 50%, white);
+      box-shadow: 0 0 0 2px rgba($teams-purple, 0.4);
+    }
+    .ctrl-btn__label { color: color-mix(in srgb, $teams-purple 50%, white); }
+  }
+
+  &--disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    &:hover { background: transparent; }
+  }
+
+  &--leave {
+    position: absolute;
+    right: 1.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    flex-direction: row;
+    gap: 0.5rem;
+    min-width: auto;
+    padding: 0 1.25rem;
+    border-radius: 24px;
+    height: 46px;
+    background: $gm-danger;
+    color: white;
+
+    .ctrl-btn__label {
+      color: white;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+
+    &:hover { background: color-mix(in srgb, $gm-danger 80%, black); }
+  }
+}
+
+.ctrl-btn__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: $gm-surface;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+  flex-shrink: 0;
+}
+
+.ctrl-btn__label {
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: $gm-text-dim;
+  white-space: nowrap;
+  transition: color 0.15s ease;
+}

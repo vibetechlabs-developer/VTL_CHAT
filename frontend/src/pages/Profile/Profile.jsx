@@ -1,10 +1,10 @@
-import { useMemo, useState } from "react";
-import { Mail, Calendar, Shield, Edit3 } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { Mail, Calendar, Shield, Edit3, Camera, Loader2 } from "lucide-react";
 import AppLayout from "../../components/vtl/AppLayout";
 import GlassCard from "../../components/vtl/GlassCard";
 import Modal from "../../components/vtl/Modal";
 import { useWorkspace } from "../../context/WorkspaceContext";
-import { extractErrorMessage } from "../../utils/helpers";
+import { extractErrorMessage, getAvatarColor, getInitials } from "../../utils/helpers";
 import "./Profile.scss";
 
 export default function Profile() {
@@ -20,12 +20,15 @@ export default function Profile() {
     teamMembers,
     unreadNotificationCount,
     updateProfile,
+    updateProfileAvatar,
   } = useWorkspace();
 
   const [showEdit, setShowEdit] = useState(false);
   const [form, setForm] = useState({ username: "", email: "", password: "" });
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const avatarInputRef = useRef(null);
 
   const myMessages = useMemo(
     () => messages.filter((m) => m.sender === profile?.id).length,
@@ -63,6 +66,23 @@ export default function Profile() {
     }
   };
 
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarUploading(true);
+    try {
+      await updateProfileAvatar(file);
+    } catch (err) {
+      console.error("Avatar upload failed:", extractErrorMessage(err));
+    } finally {
+      setAvatarUploading(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = "";
+    }
+  };
+
+  const avatarUrl = profile?.avatar_url;
+  const avatarColor = getAvatarColor(profile?.username || "");
+
   return (
     <AppLayout
       title="Profile"
@@ -77,7 +97,39 @@ export default function Profile() {
     >
       <div className="profile-page">
         <GlassCard className="profile-hero">
-          <div className="profile-hero__avatar">{initials}</div>
+          <div className="profile-hero__avatar-wrapper">
+            <div
+              className="profile-hero__avatar"
+              style={!avatarUrl ? { background: avatarColor } : {}}
+            >
+              {avatarUrl ? (
+                <img src={avatarUrl} alt={profile?.username} className="profile-hero__avatar-img" />
+              ) : (
+                initials
+              )}
+              {avatarUploading && (
+                <div className="profile-hero__avatar-overlay">
+                  <Loader2 size={22} className="spin" />
+                </div>
+              )}
+            </div>
+            <button
+              className="profile-hero__avatar-btn"
+              title="Change avatar"
+              onClick={() => avatarInputRef.current?.click()}
+              disabled={avatarUploading}
+            >
+              <Camera size={16} />
+            </button>
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              style={{ display: "none" }}
+              onChange={handleAvatarChange}
+            />
+          </div>
+
           <div className="profile-hero__info">
             <h2>{profile?.username || "User"}</h2>
             <p>{profile?.email || "—"}</p>

@@ -5,6 +5,33 @@ from .models import Message, Attachment
 from notifications.models import Notification
 from users.models import User
 
+
+def _push_notification_to_user(notification):
+    """Push a notification to the user's global WebSocket group in real-time."""
+    try:
+        from asgiref.sync import async_to_sync
+        from channels.layers import get_channel_layer
+        channel_layer = get_channel_layer()
+        if channel_layer is None:
+            return
+        async_to_sync(channel_layer.group_send)(
+            f"user_events_{notification.recipient_id}",
+            {
+                "type": "user.notification",
+                "data": {
+                    "id": notification.id,
+                    "title": notification.title,
+                    "message": notification.message,
+                    "notification_type": notification.notification_type,
+                    "is_read": notification.is_read,
+                    "created_at": notification.created_at.isoformat(),
+                },
+            },
+        )
+    except Exception:
+        pass
+
+
 @receiver(post_save, sender=Message)
 def create_message_notification(sender, instance, created, **kwargs):
     if created:
@@ -15,12 +42,13 @@ def create_message_notification(sender, instance, created, **kwargs):
         if channel.channel_type == 'DIRECT':
             other_members = channel.members.exclude(id=sender_user.id)
             for member in other_members:
-                Notification.objects.create(
+                notif = Notification.objects.create(
                     recipient=member,
                     title=f"New message from {sender_user.username}",
                     message=f"{instance.content[:50]}",
                     notification_type="MESSAGE"
                 )
+                _push_notification_to_user(notif)
                 
         # 2. Handle Team Channel notifications & Mentions
         elif channel.team:
@@ -32,23 +60,32 @@ def create_message_notification(sender, instance, created, **kwargs):
                 
             for user in mentioned_users:
                 if user != sender_user:
-                    Notification.objects.create(
+                    notif = Notification.objects.create(
                         recipient=user,
                         title=f"You were mentioned in #{channel.name}",
                         message=f"{sender_user.username}: {instance.content[:50]}",
                         notification_type="MENTION"
                     )
+                    _push_notification_to_user(notif)
             
             # Send standard channel notifications (excluding mentioned users to avoid duplicates)
             mentioned_user_ids = [u.id for u in mentioned_users]
             other_members = channel.team.members.exclude(user=sender_user).exclude(user_id__in=mentioned_user_ids)
             for member in other_members:
-                Notification.objects.create(
+                notif = Notification.objects.create(
                     recipient=member.user,
                     title=f"New message in #{channel.name}",
                     message=f"{sender_user.username}: {instance.content[:50]}",
                     notification_type="MESSAGE"
                 )
+                _push_notification_to_user(notif)
+
+
+@receiver(post_save, sender=Notification)
+def push_any_notification(sender, instance, created, **kwargs):
+    """Catch-all: push any newly created notification (e.g. meeting notifications)."""
+    if created:
+        _push_notification_to_user(instance)
 
 
 @receiver(post_delete, sender=Attachment)

@@ -19,7 +19,7 @@ const navItems = [
   { to: "/meetings", icon: Calendar, label: "Calendar" },
 ];
 
-export default function FloatingSidebar({ onLogout, initials }) {
+export default function FloatingSidebar({ onLogout, initials, avatarUrl }) {
   return (
     <aside className="floating-sidebar">
       <div className="floating-sidebar__header">
@@ -55,7 +55,11 @@ export default function FloatingSidebar({ onLogout, initials }) {
           title="Profile"
         >
           <div className="floating-sidebar__avatar">
-            {initials || "U"}
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="Avatar" className="floating-sidebar__avatar-img" />
+            ) : (
+              initials || "U"
+            )}
           </div>
           <span className="floating-sidebar__link-label">Profile</span>
         </NavLink>

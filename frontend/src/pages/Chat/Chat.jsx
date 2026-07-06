@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import AppLayout from "../../components/vtl/AppLayout";
 import MessageArea from "../../components/chat/MessageArea";
@@ -45,6 +45,8 @@ export default function Chat() {
   const [sending, setSending] = useState(false);
   const [reactingId, setReactingId] = useState(null);
   const [showMembers, setShowMembers] = useState(true);
+  // typing: { [userId]: { username, timeout } }
+  const [typingUsers, setTypingUsers] = useState({});
 
   // Unified parameter resolution
   const currentChannelId = useMemo(() => {
@@ -87,6 +89,14 @@ export default function Chat() {
         setChannelMessages(messagesList);
         setChannelAttachments(attachmentsRes);
         setChannelReactionsLocal(reactionsRes);
+
+        // Send read receipt for the latest message
+        if (messagesList.length > 0) {
+          const latestMsg = messagesList[messagesList.length - 1];
+          if (latestMsg.sender !== profile?.id) {
+            workspaceApi.sendReadReceipt(currentChannelId, latestMsg.id).catch(() => {});
+          }
+        }
       } catch (err) {
         console.error(extractErrorMessage(err));
       } finally {
@@ -104,10 +114,15 @@ export default function Chat() {
       if (!payload?.type) return;
 
       if (payload.type === "message" && payload.payload) {
+        const msg = payload.payload;
         setChannelMessages((prev) => {
-          if (prev.some((m) => m.id === payload.payload.id)) return prev;
-          return [...prev, payload.payload];
+          if (prev.some((m) => m.id === msg.id)) return prev;
+          return [...prev, msg];
         });
+        // Send read receipt if received message is from another user
+        if (msg.sender !== profile?.id) {
+          workspaceApi.sendReadReceipt(currentChannelId, msg.id).catch(() => {});
+        }
         return;
       }
 
@@ -154,8 +169,27 @@ export default function Chat() {
         }
         return;
       }
-    },
-    [currentChannelId]
+      if (payload.type === "typing") {
+        const { user_id, username, is_typing } = payload;
+        // Don't show indicator for our own user
+        if (user_id === profile?.id) return;
+        setTypingUsers((prev) => {
+          if (!is_typing) {
+            const { [user_id]: _removed, ...rest } = prev;
+            return rest;
+          }
+          // auto-clear after 3.5s in case disconnect event is missed
+          if (prev[user_id]?.clearTimeout) clearTimeout(prev[user_id].clearTimeout);
+          const timer = setTimeout(() => {
+            setTypingUsers((p) => {
+              const { [user_id]: _r, ...r } = p; return r;
+            });
+          }, 3500);
+          return { ...prev, [user_id]: { username, clearTimeout: timer } };
+        });
+        return;
+      }
+    },    [currentChannelId]
   );
 
   const handleReconnect = useCallback(async () => {
@@ -175,7 +209,11 @@ export default function Chat() {
     }
   }, [currentChannelId, fetchChannelMessages]);
 
-  const { connectionStatus } = useChatSocket(currentChannelId, handleSocketEvent, handleReconnect);
+  const { connectionStatus, sendSocketMessage } = useChatSocket(currentChannelId, handleSocketEvent, handleReconnect);
+
+  const handleTyping = useCallback((isTyping) => {
+    sendSocketMessage({ action: "typing", is_typing: isTyping });
+  }, [sendSocketMessage]);
 
   const activeChannel = channels.find((c) => c.id === currentChannelId);
   const activeTeam = teams.find((t) => t.id === currentTeamId);
@@ -295,6 +333,44 @@ export default function Chat() {
     }
   };
 
+  // ---------- INSTANT CALL (Teams style) ----------
+  const handleVideoCall = async () => {
+    if (!activeChannel) return;
+    try {
+      const channelLabel = getChannelDisplayName(activeChannel, profile?.id, usersMap);
+      const startTime = new Date().toISOString();
+      const endTime = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour
+      const res = await workspaceApi.createMeeting({
+        title: `Call in ${channelLabel}`,
+        start_time: startTime,
+        end_time: endTime,
+        channel: activeChannel.id,
+      });
+      navigate(`/meetings/${res.data.id}/room`);
+    } catch (err) {
+      console.error("Failed to start video call:", extractErrorMessage(err));
+    }
+  };
+
+  const handleAudioCall = async () => {
+    if (!activeChannel) return;
+    try {
+      const channelLabel = getChannelDisplayName(activeChannel, profile?.id, usersMap);
+      const startTime = new Date().toISOString();
+      const endTime = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+      const res = await workspaceApi.createMeeting({
+        title: `Audio call in ${channelLabel}`,
+        start_time: startTime,
+        end_time: endTime,
+        channel: activeChannel.id,
+      });
+      // Navigate to room with audio-only flag via state
+      navigate(`/meetings/${res.data.id}/room`, { state: { audioOnly: true } });
+    } catch (err) {
+      console.error("Failed to start audio call:", extractErrorMessage(err));
+    }
+  };
+
   return (
     <AppLayout
       title={location.pathname.startsWith("/chat") ? "Chat" : "Teams"}
@@ -323,6 +399,7 @@ export default function Chat() {
             reactions={channelReactions}
             attachments={channelAttachments}
             loading={messagesLoading}
+            typingUsers={typingUsers}
             onReact={handleReact}
             reactingId={reactingId}
             onPin={handlePin}
@@ -331,10 +408,13 @@ export default function Chat() {
             onClearChat={handleClearChat}
             onToggleMembers={() => setShowMembers(!showMembers)}
             onDMSelect={handleDMSelect}
+            onVideoCall={handleVideoCall}
+            onAudioCall={handleAudioCall}
           />
           <MessageInput
             channelName={getChannelDisplayName(activeChannel, profile?.id, usersMap)}
             onSend={handleSend}
+            onTyping={handleTyping}
             disabled={!currentChannelId}
             sending={sending}
             members={teamMembersList}

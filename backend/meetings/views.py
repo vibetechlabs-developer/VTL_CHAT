@@ -16,7 +16,8 @@ class MeetingListCreateView(APIView):
 
         meetings = Meeting.objects.filter(
             Q(host=request.user) |
-            Q(channel__team__members__user=request.user)
+            Q(channel__team__members__user=request.user) |
+            Q(channel__members=request.user)
         ).distinct().order_by("start_time")
 
         serializer = MeetingSerializer(
@@ -53,7 +54,8 @@ class MeetingDetailView(APIView):
             id=meeting_id
         ).filter(
             Q(host=request.user) |
-            Q(channel__team__members__user=request.user)
+            Q(channel__team__members__user=request.user) |
+            Q(channel__members=request.user)
         ).distinct().first()
 
         if not meeting:
@@ -119,7 +121,10 @@ class MeetingParticipantListCreateView(APIView):
             )
 
         is_host = (meeting.host == request.user)
-        is_member = meeting.channel.team.members.filter(user=request.user).exists()
+        if meeting.channel.team:
+            is_member = meeting.channel.team.members.filter(user=request.user).exists()
+        else:
+            is_member = meeting.channel.members.filter(id=request.user.id).exists()
         if not (is_host or is_member):
             return Response(
                 {"error": "Permission denied"},
@@ -139,7 +144,9 @@ class MeetingParticipantListCreateView(APIView):
 
     def post(self, request, meeting_id):
         meeting = Meeting.objects.filter(id=meeting_id).filter(
-            Q(host=request.user) | Q(channel__team__members__user=request.user)
+            Q(host=request.user) |
+            Q(channel__team__members__user=request.user) |
+            Q(channel__members=request.user)
         ).distinct().first()
 
         if not meeting:
@@ -156,13 +163,26 @@ class MeetingParticipantListCreateView(APIView):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        if not meeting.channel.team.members.filter(user_id=user_id).exists():
-            return Response(
-                {"error": "User is not a member of this team"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        if meeting.channel.team:
+            if not meeting.channel.team.members.filter(user_id=user_id).exists():
+                return Response(
+                    {"error": "User is not a member of this team"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        else:
+            if not meeting.channel.members.filter(id=user_id).exists():
+                return Response(
+                    {"error": "User is not a member of this channel"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
         role = request.data.get("role", "PARTICIPANT")
         is_self = (int(user_id) == request.user.id)
+
+        # Check if the call is starting (no one is currently present)
+        is_call_starting = is_self and not MeetingParticipant.objects.filter(
+            meeting=meeting,
+            is_present=True
+        ).exists()
 
         existing_participant = MeetingParticipant.objects.filter(
             meeting=meeting,
@@ -170,27 +190,42 @@ class MeetingParticipantListCreateView(APIView):
         ).first()
 
         if existing_participant:
-            if existing_participant.is_present:
-                return Response(
-                    {"error": "User is already a participant of this meeting"},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            existing_participant.is_present = True
-            existing_participant.joined_at = timezone.now()
-            existing_participant.save()
+            if not existing_participant.is_present:
+                existing_participant.is_present = True
+                existing_participant.joined_at = timezone.now()
+                existing_participant.save()
             serializer = MeetingParticipantSerializer(existing_participant)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+        else:
+            participant = MeetingParticipant.objects.create(
+                meeting=meeting,
+                user_id=user_id,
+                role=role,
+                is_present=is_self,
+                joined_at=timezone.now() if is_self else None
+            )
+            serializer = MeetingParticipantSerializer(participant)
 
-        participant = MeetingParticipant.objects.create(
-            meeting=meeting,
-            user_id=user_id,
-            role=role,
-            is_present=is_self,
-            joined_at=timezone.now() if is_self else None
-        )
+        if is_call_starting:
+            try:
+                from chat.models import Message
+                from chat.utils import broadcast_to_channel
+                from chat.serializers import MessageSerializer
 
-        serializer = MeetingParticipantSerializer(participant)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+                call_type = "an audio call" if "Audio" in meeting.title else "a video call"
+                msg = Message.objects.create(
+                    sender=request.user,
+                    channel=meeting.channel,
+                    content=f"{request.user.username} started {call_type}",
+                    is_system=True
+                )
+
+                # Broadcast the message
+                msg_serializer = MessageSerializer(msg)
+                broadcast_to_channel(meeting.channel_id, {"type": "message", "payload": msg_serializer.data})
+            except Exception as e:
+                print("Failed to post call started message:", e)
+
+        return Response(serializer.data, status=status.HTTP_200_OK if existing_participant else status.HTTP_201_CREATED)
 
 
 class MeetingParticipantDetailView(APIView):
@@ -261,8 +296,62 @@ class MeetingParticipantDetailView(APIView):
         )
 
         if serializer.is_valid():
+            was_present = participant.is_present
+            is_present = request.data.get("is_present")
 
             serializer.save()
+
+            if was_present and is_present is False:
+                # User left the call
+                participant.left_at = timezone.now()
+                participant.save()
+
+                meeting = participant.meeting
+                any_present = MeetingParticipant.objects.filter(
+                    meeting=meeting,
+                    is_present=True
+                ).exists()
+
+                if not any_present:
+                    # No one left in the call! Call has ended.
+                    try:
+                        # Find the earliest joined_at to calculate duration
+                        earliest_participant = MeetingParticipant.objects.filter(
+                            meeting=meeting,
+                            joined_at__isnull=False
+                        ).order_by('joined_at').first()
+
+                        start_time = earliest_participant.joined_at if earliest_participant else meeting.created_at
+                        end_time = timezone.now()
+                        duration = end_time - start_time
+
+                        total_seconds = int(duration.total_seconds())
+                        hours = total_seconds // 3600
+                        minutes = (total_seconds % 3600) // 60
+                        seconds = total_seconds % 60
+
+                        duration_str = ""
+                        if hours > 0:
+                            duration_str += f"{hours}h "
+                        if minutes > 0 or hours > 0:
+                            duration_str += f"{minutes}m "
+                        duration_str += f"{seconds}s"
+
+                        from chat.models import Message
+                        from chat.utils import broadcast_to_channel
+                        from chat.serializers import MessageSerializer
+
+                        msg = Message.objects.create(
+                            sender=meeting.host,
+                            channel=meeting.channel,
+                            content=f"Call ended. Duration: {duration_str}",
+                            is_system=True
+                        )
+
+                        msg_serializer = MessageSerializer(msg)
+                        broadcast_to_channel(meeting.channel_id, {"type": "message", "payload": msg_serializer.data})
+                    except Exception as e:
+                        print("Failed to post call ended message:", e)
 
             return Response(serializer.data)
 

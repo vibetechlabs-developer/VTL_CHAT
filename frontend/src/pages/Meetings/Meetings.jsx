@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Plus, Video, Calendar, Clock, Loader2 } from "lucide-react";
 import AppLayout from "../../components/vtl/AppLayout";
 import GlassCard from "../../components/vtl/GlassCard";
@@ -13,6 +14,7 @@ import {
 import "./Meetings.scss";
 
 export default function Meetings() {
+  const navigate = useNavigate();
   const {
     profile,
     loading,
@@ -24,7 +26,6 @@ export default function Meetings() {
     usersMap,
     unreadNotificationCount,
     createMeeting,
-    joinMeeting,
   } = useWorkspace();
 
   const [search, setSearch] = useState("");
@@ -73,18 +74,18 @@ export default function Meetings() {
     }
   };
 
-  const handleJoin = async (meetingId) => {
-    setJoiningId(meetingId);
-    try {
-      await joinMeeting(meetingId);
-    } catch (err) {
-      console.error(extractErrorMessage(err));
-    } finally {
-      setJoiningId(null);
-    }
+  const handleJoin = (meetingId) => {
+    navigate(`/meetings/${meetingId}/room`);
   };
 
-  const isUpcoming = (startTime) => new Date(startTime) >= new Date();
+  // Determines if a meeting is upcoming (starts in the future)
+const isUpcoming = (startTime) => new Date(startTime) > new Date();
+
+// Determines if a meeting is currently ongoing (started but not ended)
+const isOngoing = (startTime, endTime) => {
+  const now = new Date();
+  return new Date(startTime) <= now && new Date(endTime) >= now;
+};
 
   return (
     <AppLayout
@@ -122,7 +123,10 @@ export default function Meetings() {
           {filtered.map((m) => (
             <GlassCard key={m.id} hover className="meeting-card">
               <div className="meeting-card__status">
-                {isUpcoming(m.start_time) ? "upcoming" : "past"}
+                {
+  new Date(m.start_time) > new Date() ? "upcoming" :
+  new Date(m.end_time) < new Date() ? "past" : "ongoing"
+}
               </div>
               <h3>{m.title}</h3>
               <div className="meeting-card__meta">
@@ -133,7 +137,7 @@ export default function Meetings() {
                 Hosted by {usersMap[m.host]?.username || "Unknown"}
               </p>
               {m.description && <p className="meeting-card__desc">{m.description}</p>}
-              {isUpcoming(m.start_time) && (
+              {isOngoing(m.start_time, m.end_time) && (
                 <button
                   className="vtl-btn vtl-btn--primary vtl-btn--sm"
                   onClick={() => handleJoin(m.id)}

@@ -6,6 +6,7 @@ import Signup from "../pages/Auth/Signup/Signup";
 import Dashboard from "../pages/Dashboard/Dashboard";
 import Chat from "../pages/Chat/Chat";
 import Meetings from "../pages/Meetings/Meetings";
+import MeetingRoom from "../pages/Meetings/MeetingRoom";
 import Notifications from "../pages/Notifications/Notifications";
 import Profile from "../pages/Profile/Profile";
 import Settings from "../pages/Settings/Settings";
@@ -27,6 +28,7 @@ function AppRoutes() {
           <Route path="/chat" element={<Chat />} />
           <Route path="/chat/dm/:channelId" element={<Chat />} />
           <Route path="/meetings" element={<Meetings />} />
+          <Route path="/meetings/:meetingId/room" element={<MeetingRoom />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/settings" element={<Settings />} />

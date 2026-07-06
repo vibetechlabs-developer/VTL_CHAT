@@ -1,0 +1,17 @@
+Teams-Like Internal Collaboration Platform
+Software Requirements Specification (SRS)
+Version 1.0
+1. Introduction
+This SRS defines the requirements for a Teams-like collaboration platform including chat, calls, meetings, groups, file sharing, and notifications.
+2. Scope
+The platform will support internal communication and collaboration through web-based interfaces.
+3. Functional Requirements
+Authentication, Teams, Chat, Calls, Meetings, File Sharing, Notifications, Admin Dashboard.
+4. Non-Functional Requirements
+Security, scalability, performance, availability, reliability, usability.
+5. User Roles
+Admin, Team Owner, Member, Guest.
+6. Security Requirements
+JWT authentication, HTTPS, RBAC, file security, rate limiting.
+7. Future Scope
+AI summaries, transcription, integrations, analytics.

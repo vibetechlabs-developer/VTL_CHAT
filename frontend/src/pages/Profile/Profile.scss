@@ -23,9 +23,18 @@
   gap: 1.5rem;
   flex-wrap: wrap;
 
+  &__avatar-wrapper {
+    position: relative;
+    flex-shrink: 0;
+
+    &:hover .profile-hero__avatar-btn {
+      opacity: 1;
+    }
+  }
+
   &__avatar {
-    width: 80px;
-    height: 80px;
+    width: 88px;
+    height: 88px;
     border-radius: $radius-lg;
     background: linear-gradient(135deg, $accent-purple, $accent-blue);
     @include flex-center;
@@ -33,6 +42,53 @@
     font-weight: 800;
     color: white;
     box-shadow: 0 8px 32px rgba(124, 58, 237, 0.35);
+    overflow: hidden;
+    position: relative;
+  }
+
+  &__avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: $radius-lg;
+  }
+
+  &__avatar-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: $radius-lg;
+    color: white;
+  }
+
+  &__avatar-btn {
+    position: absolute;
+    bottom: -6px;
+    right: -6px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: $accent-purple;
+    border: 2px solid $bg-primary;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+
+    &:hover {
+      transform: scale(1.1);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
   }
 
   &__info {
@@ -64,6 +120,7 @@
     border: 1px solid $border-purple;
   }
 }
+
 
 .profile-detail,
 .profile-stats {
