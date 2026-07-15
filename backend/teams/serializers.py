@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import Team, Organization, TeamMember, Channel
+from .models import Team, Organization, TeamMember, Channel, Group, GroupMember
+
 
 class TeamSerializer(serializers.ModelSerializer):
 
@@ -13,7 +14,7 @@ class TeamSerializer(serializers.ModelSerializer):
             "organization",
             "team_type",
             "created_by",
-            "created_at"
+            "created_at",
         ]
 
         read_only_fields = [
@@ -23,24 +24,17 @@ class TeamSerializer(serializers.ModelSerializer):
     def validate_name(self, value):
 
         if len(value.strip()) < 3:
-            raise serializers.ValidationError(
-                "Team name too short"
-            )
+            raise serializers.ValidationError("Team name too short")
 
         return value
+
 
 class OrganizationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Organization
 
-        fields = [
-            "id",
-            "name",
-            "description",
-            "created_by",
-            "created_at"
-        ]
+        fields = ["id", "name", "description", "created_by", "created_at"]
 
         read_only_fields = [
             "created_by",
@@ -49,27 +43,21 @@ class OrganizationSerializer(serializers.ModelSerializer):
     def validate_name(self, value):
 
         if len(value.strip()) < 3:
-            raise serializers.ValidationError(
-                "Organization name too short"
-            )
+            raise serializers.ValidationError("Organization name too short")
 
         return value
 
+
 class TeamMemberSerializer(serializers.ModelSerializer):
-        
+
     class Meta:
         model = TeamMember
 
-        fields = [
-            "id",
-            "user",
-            "team",
-            "role",
-            "joined_at"
-        ]
+        fields = ["id", "user", "team", "role", "joined_at"]
         read_only_fields = [
             "user",
         ]
+
 
 class ChannelSerializer(serializers.ModelSerializer):
 
@@ -81,6 +69,7 @@ class ChannelSerializer(serializers.ModelSerializer):
             "name",
             "description",
             "team",
+            "group",
             "created_by",
             "created_at",
             "channel_type",
@@ -94,8 +83,43 @@ class ChannelSerializer(serializers.ModelSerializer):
     def validate_name(self, value):
 
         if len(value.strip()) < 3:
-            raise serializers.ValidationError(
-                "Channel name too short"
-            )
+            raise serializers.ValidationError("Channel name too short")
 
-        return value
+        return value
+
+
+class GroupSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Group
+
+        fields = [
+            "id",
+            "name",
+            "description",
+            "team",
+            "created_by",
+            "created_at",
+        ]
+
+        read_only_fields = [
+            "created_by",
+        ]
+
+    def validate_name(self, value):
+
+        if len(value.strip()) < 3:
+            raise serializers.ValidationError("Group name too short")
+
+        return value
+
+
+class GroupMemberSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = GroupMember
+
+        fields = ["id", "user", "group", "role", "joined_at"]
+        read_only_fields = [
+            "user",
+        ]

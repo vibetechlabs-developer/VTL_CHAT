@@ -1,8 +1,11 @@
+import { useEffect } from "react";
 import { Bell, Globe, Shield, Palette, Keyboard } from "lucide-react";
 import AppLayout from "../../components/vtl/AppLayout";
 import GlassCard from "../../components/vtl/GlassCard";
 import { useWorkspace } from "../../context/WorkspaceContext";
 import { useSettings } from "../../context/SettingsContext";
+import * as workspaceApi from "../../services/workspaceApi";
+import { useToast } from "../../context/ToastContext";
 import "./Settings.scss";
 
 const sections = [
@@ -58,6 +61,26 @@ export default function Settings() {
   } = useWorkspace();
 
   const { settings, updateSetting } = useSettings();
+  const toast = useToast();
+
+  useEffect(() => {
+    workspaceApi
+      .getNotificationPreferences()
+      .then((res) => {
+        updateSetting("desktopNotifications", res.data.desktop_notifications);
+        updateSetting("emailDigest", res.data.email_digest);
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const syncPreference = async (key, value, apiField) => {
+    try {
+      await workspaceApi.updateNotificationPreferences({ [apiField]: value });
+    } catch {
+      toast.error("Failed to save preference");
+    }
+  };
 
   const handleToggle = (key, value) => {
     if (key === "desktopNotifications" && value === true) {
@@ -65,12 +88,23 @@ export default function Settings() {
         Notification.requestPermission().then((permission) => {
           if (permission === "granted") {
             updateSetting(key, true);
+            syncPreference(key, true, "desktop_notifications");
           } else {
-            alert("Please allow notification permissions in your browser to enable this feature.");
+            toast.error("Enable browser notification permission first.");
           }
         });
         return;
       }
+    }
+    if (key === "emailDigest") {
+      updateSetting(key, value);
+      syncPreference(key, value, "email_digest");
+      return;
+    }
+    if (key === "desktopNotifications") {
+      updateSetting(key, value);
+      syncPreference(key, value, "desktop_notifications");
+      return;
     }
     if (key === "twoFactorAuth") {
       updateSetting(key, value);
@@ -114,10 +148,17 @@ export default function Settings() {
                     <span className="settings-row__desc">{s.desc}</span>
                   </div>
                   {s.toggle ? (
-                    <Toggle 
-                      checked={s.key ? settings[s.key] : false} 
-                      onChange={(val) => s.key ? handleToggle(s.key, val) : null} 
-                    />
+                    s.key === "twoFactorAuth" ? (
+                      <>
+                        <Toggle checked={settings[s.key] ?? false} onChange={() => {}} disabled />
+                        <span className="badge coming-soon">Coming Soon</span>
+                      </>
+                    ) : (
+                      <Toggle
+                        checked={settings[s.key] ?? false}
+                        onChange={(val) => handleToggle(s.key, val)}
+                      />
+                    )
                   ) : (
                     <button className="settings-row__link">Change</button>
                   )}

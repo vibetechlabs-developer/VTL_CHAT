@@ -37,7 +37,11 @@ class GlobalEventsConsumer(AsyncWebsocketConsumer):
 
     async def user_notification(self, event):
         """Deliver a new notification payload to the connected client."""
-        await self.send(text_data=json.dumps({
-            "type": "notification",
-            "payload": event["data"],
-        }))
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "type": "notification",
+                    "payload": event["data"],
+                }
+            )
+        )

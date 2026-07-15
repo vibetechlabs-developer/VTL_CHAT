@@ -1,9 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
-import {
-  ChevronDown,
-  ChevronRight,
-  Plus,
+import { ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen, Plus,
   Hash,
   Lock,
   Bell,
@@ -11,29 +8,45 @@ import {
   Video,
   Users,
   Shield,
-  Loader2
+  LogOut,
+  Loader2,
 } from "lucide-react";
+import { useConfirm } from "../../context/ConfirmContext";
+import { useToast } from "../../context/ToastContext";
 import { useWorkspace } from "../../context/WorkspaceContext";
 import { getAvatarColor, getInitials, extractErrorMessage, getTeamGradient } from "../../utils/helpers";
+import logger from "../../utils/logger";
+import DOMPurify from "dompurify";
 import Modal from "./Modal";
 import SearchableMultiSelect from "./SearchableMultiSelect";
 import * as workspaceApi from "../../services/workspaceApi";
 import "./ContextSidebar.scss";
 
-export default function ContextSidebar() {
+export default function ContextSidebar({ isOpen, onClose }) {
   const location = useLocation();
+
+  // Close sidebar drawer automatically when location changes (mobile behavior)
+  useEffect(() => {
+    if (isOpen && onClose) {
+      onClose();
+    }
+  }, [location.pathname, onClose]);
   const navigate = useNavigate();
+  const confirm = useConfirm();
+  const toast = useToast();
   const {
     teams,
     channels,
     users,
     profile,
+    teamMembers,
     notifications,
     meetings,
     createChannel,
     createDirectMessageChannel,
     createTeam,
     addTeamMember,
+    leaveTeam,
     markNotificationRead,
     markAllNotificationsRead,
   } = useWorkspace();
@@ -59,12 +72,13 @@ export default function ContextSidebar() {
   const [submitting, setSubmitting] = useState(false);
   const [inviteTeamMembers, setInviteTeamMembers] = useState([]);
   const [inviteMembersLoading, setInviteMembersLoading] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
 
   const activeTab = useMemo(() => {
     const path = location.pathname;
     if (path.startsWith("/notifications")) return "activity";
     if (path.startsWith("/chat")) return "chat";
-    if (path.startsWith("/teams")) return "teams";
+    if (path === "/teams" || path.startsWith("/teams/")) return "teams";
     if (path.startsWith("/meetings")) return "meetings";
     return "";
   }, [location.pathname]);
@@ -91,6 +105,37 @@ export default function ContextSidebar() {
     const otherId = channel.members.find((id) => id !== profile?.id) || profile?.id;
     const otherUser = users.find((u) => u.id === otherId);
     return otherUser ? otherUser.username : channel.name;
+  };
+
+  const getMembership = (teamId, userId = profile?.id) =>
+    teamMembers.find(
+      (m) => Number(m.team) === Number(teamId) && Number(m.user) === Number(userId)
+    );
+
+  const isTeamAdmin = (teamId) => {
+    const membership = getMembership(teamId);
+    if (membership?.role === "ADMIN") return true;
+    const team = teams.find((t) => Number(t.id) === Number(teamId));
+    return Number(team?.created_by) === Number(profile?.id);
+  };
+
+  const handleLeaveTeam = async (team) => {
+    const ok = await confirm({
+      title: "Leave Team",
+      message: `Leave "${team.name}"? You will lose access to its channels.`,
+      confirmText: "Leave",
+      type: "danger",
+    });
+    if (!ok) return;
+    try {
+      await leaveTeam(team.id, profile.id);
+      toast.success(`Left ${team.name}`);
+      if (location.pathname.startsWith(`/teams/${team.id}`)) {
+        navigate("/teams");
+      }
+    } catch (err) {
+      toast.error(extractErrorMessage(err));
+    }
   };
 
   const handleCreateTeamSubmit = async (e) => {
@@ -155,7 +200,7 @@ export default function ContextSidebar() {
       const res = await workspaceApi.getTeamMembers(teamId);
       setInviteTeamMembers(res.data);
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       setInviteTeamMembers([]);
     } finally {
       setInviteMembersLoading(false);
@@ -204,7 +249,7 @@ export default function ContextSidebar() {
       setShowNewDM(false);
       navigate(`/chat/dm/${dmChannel.id}`);
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     }
   };
 
@@ -225,18 +270,29 @@ export default function ContextSidebar() {
   if (!activeTab) return null;
 
   return (
-    <aside className="context-sidebar">
+    <aside className={`context-sidebar ${collapsed ? "context-sidebar--collapsed" : ""} ${isOpen ? "context-sidebar--open" : ""}`}>
+      <button
+        type="button"
+        className="context-sidebar__collapse-btn"
+        onClick={() => setCollapsed((c) => !c)}
+        title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      >
+        {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+      </button>
+      {!collapsed && (
+        <>
       {/* Pane Header */}
       <div className="context-sidebar__header">
         {activeTab === "teams" && (
           <>
             <h2>Teams</h2>
             <button
-              className="context-sidebar__add-btn"
+              className="context-sidebar__add-btn context-sidebar__add-btn--labeled"
               title="Create Team"
               onClick={() => setShowCreateTeam(true)}
             >
-              <Plus size={16} />
+              <Plus size={14} />
+              <span>New</span>
             </button>
           </>
         )}
@@ -314,12 +370,19 @@ export default function ContextSidebar() {
                       </span>
 
                       <div className="context-sidebar__team-actions">
-                        <button
-                          title="Invite Members"
-                          onClick={() => openInvite(team)}
-                        >
-                          <UserPlus size={12} />
-                        </button>
+                        {isTeamAdmin(team.id) && (
+                          <button
+                            title="Invite Members"
+                            onClick={() => openInvite(team)}
+                          >
+                            <UserPlus size={12} />
+                          </button>
+                        )}
+                        {getMembership(team.id) && (
+                          <button title="Leave Team" onClick={() => handleLeaveTeam(team)}>
+                            <LogOut size={12} />
+                          </button>
+                        )}
                         <button
                           title="Create Channel"
                           onClick={() => {
@@ -436,7 +499,7 @@ export default function ContextSidebar() {
                       <strong>{n.title}</strong>
                       <span className="context-sidebar__notif-dot" />
                     </div>
-                    <p>{n.message}</p>
+                    <p dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(n.message) }} />
                   </div>
                 ))
             )}
@@ -701,6 +764,8 @@ export default function ContextSidebar() {
           </div>
         </div>
       </Modal>
+        </>
+      )}
     </aside>
   );
 }

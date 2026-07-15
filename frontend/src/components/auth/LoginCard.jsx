@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { loginUser, googleLogin, storeAuthTokens } from "../../services/authService";
+import { loginUser, googleLogin, storeAuthTokens, getLoginErrorMessage } from "../../services/authService";
 import { useGoogleAuth } from "../../hooks/useGoogleAuth";
 import GoogleIcon from "./GoogleIcon";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
@@ -79,8 +79,7 @@ const LoginCard = () => {
       storeAuthTokens(response.data);
       navigate("/dashboard");
     } catch (err) {
-      const apiError = err.response?.data?.error || err.response?.data?.detail;
-      setError(apiError || "Invalid email or password");
+      setError(getLoginErrorMessage(err));
     } finally {
       setLoading(false);
     }

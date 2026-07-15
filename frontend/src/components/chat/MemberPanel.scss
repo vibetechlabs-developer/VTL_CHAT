@@ -73,6 +73,7 @@
     text-align: left;
     border: none;
     background: transparent;
+    position: relative;
 
     &:hover {
       background: $glass-bg-hover;
@@ -84,6 +85,7 @@
 
     &--self {
       background: rgba(124, 58, 237, 0.06);
+      cursor: default;
     }
   }
 
@@ -159,6 +161,46 @@
     padding: 0.5rem;
     font-size: 0.8rem;
     color: $text-dim;
+  }
+
+  &__action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    border-radius: $radius-sm;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    opacity: 0;
+    transition: $transition-fast;
+    flex-shrink: 0;
+
+    &--leave {
+      color: #f59e0b;
+
+      &:hover {
+        background: rgba(245, 158, 11, 0.15);
+        color: #fbbf24;
+        opacity: 1;
+      }
+    }
+
+    &--remove {
+      color: $text-dim;
+
+      &:hover {
+        background: rgba(239, 68, 68, 0.15);
+        color: #ef4444;
+        opacity: 1;
+      }
+    }
+  }
+
+  &__member:hover &__action-btn {
+    opacity: 1;
   }
 }
 

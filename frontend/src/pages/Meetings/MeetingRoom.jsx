@@ -3,11 +3,14 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   Mic, MicOff, Video as VideoIcon, VideoOff,
   PhoneOff, Phone, Monitor, MonitorOff, Users, Loader2, AlertCircle,
-  Hand, PhoneCall
+  PhoneCall, Hand, Settings
 } from "lucide-react";
 import { useWorkspace } from "../../context/WorkspaceContext";
 import * as workspaceApi from "../../services/workspaceApi";
-import { extractErrorMessage } from "../../utils/helpers";
+import { extractErrorMessage, getAvatarColor } from "../../utils/helpers";
+import { fetchWsTicket, getWsBaseUrl } from "../../services/wsTicket";
+import { getAccessToken } from "../../services/api";
+import logger from "../../utils/logger";
 import "./MeetingRoom.scss";
 
 const RTC_CONFIG = {
@@ -15,9 +18,18 @@ const RTC_CONFIG = {
     { urls: "stun:stun.l.google.com:19302" },
     { urls: "stun:stun1.l.google.com:19302" },
     { urls: "stun:stun2.l.google.com:19302" },
+    // TURN server (optional, via env variables)
+    ...(import.meta.env.VITE_TURN_URL ? [{
+      urls: import.meta.env.VITE_TURN_URL,
+      username: import.meta.env.VITE_TURN_USER,
+      credential: import.meta.env.VITE_TURN_PASS
+    }] : []),
   ],
   iceCandidatePoolSize: 10,
 };
+
+// Maximum reconnection attempts for signaling WebSocket
+const MAX_RECONNECT_ATTEMPTS = 10;
 
 // --- Utility: attach srcObject safely ---
 function attachStream(videoEl, stream) {
@@ -26,65 +38,45 @@ function attachStream(videoEl, stream) {
   }
 }
 
-// Generate a consistent color from a username string
-function getAvatarColor(username) {
-  const colors = [
-    ["#5264AE", "#3949AB"],
-    ["#7B5EA7", "#512DA8"],
-    ["#C96480", "#AD1457"],
-    ["#3D8B8B", "#00695C"],
-    ["#4A6FA5", "#1565C0"],
-    ["#7B6B42", "#5D4037"],
-    ["#C45B2E", "#BF360C"],
-  ];
-  if (!username) return colors[0];
-  let hash = 0;
-  for (let i = 0; i < username.length; i++) hash = username.charCodeAt(i) + ((hash << 5) - hash);
-  return colors[Math.abs(hash) % colors.length];
+function getAvatarGradient(username) {
+  const color = getAvatarColor(username);
+  return [color, `${color}99`];
 }
 
 // --- Remote Video Tile (Meet-style) ---
 function RemoteTile({ peerId, peer }) {
   const videoRef = useRef(null);
-  const [hasVideo, setHasVideo] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  const [streamHasVideo, setStreamHasVideo] = useState(false);
+  const [streamHasAudio, setStreamHasAudio] = useState(false);
 
   useEffect(() => {
     const stream = peer.stream;
-    if (!stream) { setHasVideo(false); setIsMuted(true); return; }
+    if (!stream) { setStreamHasVideo(false); setStreamHasAudio(false); return; }
 
     if (videoRef.current) videoRef.current.srcObject = stream;
 
     const checkTracks = () => {
       const vTracks = stream.getVideoTracks();
       const aTracks = stream.getAudioTracks();
-      setHasVideo(vTracks.length > 0 && vTracks.some(t => t.enabled && !t.muted));
-      setIsMuted(!(aTracks.length > 0 && aTracks.some(t => t.enabled && !t.muted)));
+      setStreamHasVideo(vTracks.length > 0);
+      setStreamHasAudio(aTracks.length > 0);
     };
 
     stream.addEventListener("addtrack", checkTracks);
     stream.addEventListener("removetrack", checkTracks);
-    const tracks = stream.getTracks();
-    tracks.forEach(t => {
-      t.addEventListener("mute", checkTracks);
-      t.addEventListener("unmute", checkTracks);
-      t.addEventListener("ended", checkTracks);
-    });
     checkTracks();
 
     return () => {
       stream.removeEventListener("addtrack", checkTracks);
       stream.removeEventListener("removetrack", checkTracks);
-      tracks.forEach(t => {
-        t.removeEventListener("mute", checkTracks);
-        t.removeEventListener("unmute", checkTracks);
-        t.removeEventListener("ended", checkTracks);
-      });
     };
   }, [peer.stream]);
 
+  const hasVideo = (peer.camEnabled !== false) && streamHasVideo;
+  const isMuted = (peer.micEnabled === false) || !streamHasAudio;
+
   const initials = peer.username ? peer.username.substring(0, 2).toUpperCase() : "?";
-  const colors = getAvatarColor(peer.username);
+  const colors = getAvatarGradient(peer.username);
 
   return (
     <div className="meet-tile">
@@ -117,7 +109,7 @@ function RemoteTile({ peerId, peer }) {
 // --- Teams Audio Card (one per participant) ---
 function TeamsAudioCard({ username, isMuted, isSelf, avatarColors }) {
   const initials = username ? username.substring(0, 2).toUpperCase() : "?";
-  const colors = avatarColors || getAvatarColor(username);
+  const colors = avatarColors || getAvatarGradient(username);
   const isSpeaking = !isMuted;
 
   return (
@@ -152,48 +144,57 @@ function TeamsAudioCard({ username, isMuted, isSelf, avatarColors }) {
 
 // --- Remote Audio Tile (reads stream audio state) ---
 function RemoteAudioCard({ peer }) {
-  const [isMuted, setIsMuted] = useState(false);
+  const [streamHasAudio, setStreamHasAudio] = useState(false);
 
   useEffect(() => {
     const stream = peer.stream;
-    if (!stream) { setIsMuted(true); return; }
+    if (!stream) { setStreamHasAudio(false); return; }
 
     const check = () => {
       const aTracks = stream.getAudioTracks();
-      setIsMuted(!(aTracks.length > 0 && aTracks.some(t => t.enabled && !t.muted)));
+      setStreamHasAudio(aTracks.length > 0);
     };
 
     stream.addEventListener("addtrack", check);
     stream.addEventListener("removetrack", check);
-    stream.getTracks().forEach(t => {
-      t.addEventListener("mute", check);
-      t.addEventListener("unmute", check);
-      t.addEventListener("ended", check);
-    });
     check();
 
     return () => {
       stream.removeEventListener("addtrack", check);
       stream.removeEventListener("removetrack", check);
-      stream.getTracks().forEach(t => {
-        t.removeEventListener("mute", check);
-        t.removeEventListener("unmute", check);
-        t.removeEventListener("ended", check);
-      });
     };
   }, [peer.stream]);
+
+  const isMuted = (peer.micEnabled === false) || !streamHasAudio;
 
   return <TeamsAudioCard username={peer.username} isMuted={isMuted} isSelf={false} />;
 }
 
-// --- Elapsed timer hook ---
-function useCallTimer() {
+// --- Elapsed timer hook (starts only when call is connected) ---
+function useCallTimer(isConnected, waitingLabel = "Ringing...") {
   const [elapsed, setElapsed] = useState(0);
-  const startRef = useRef(Date.now());
+  const startRef = useRef(null);
+
   useEffect(() => {
-    const id = setInterval(() => setElapsed(Math.floor((Date.now() - startRef.current) / 1000)), 1000);
+    if (!isConnected) {
+      startRef.current = null;
+      setElapsed(0);
+      return undefined;
+    }
+
+    if (startRef.current === null) {
+      startRef.current = Date.now();
+    }
+
+    const id = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startRef.current) / 1000));
+    }, 1000);
+
     return () => clearInterval(id);
-  }, []);
+  }, [isConnected]);
+
+  if (!isConnected) return waitingLabel;
+
   const mins = String(Math.floor(elapsed / 60)).padStart(2, "0");
   const secs = String(elapsed % 60).padStart(2, "0");
   return `${mins}:${secs}`;
@@ -215,8 +216,20 @@ export default function MeetingRoom() {
   const [camEnabled, setCamEnabled] = useState(false);
   const [screenSharing, setScreenSharing] = useState(false);
   const [audioOnly, setAudioOnly] = useState(false);
-  const [peers, setPeers] = useState({});
   const [handRaised, setHandRaised] = useState(false);
+  const [peers, setPeers] = useState({});
+  const [callConnected, setCallConnected] = useState(false);
+  // WebSocket connection status for signaling
+  const [wsStatus, setWsStatus] = useState('disconnected');
+  const reconnectAttemptsRef = useRef(0);
+  const reconnectTimerRef = useRef(null);
+
+  // A-05: device selection
+  const [deviceList, setDeviceList] = useState({ audio: [], video: [] });
+  const [selectedMicId, setSelectedMicId] = useState("");
+  const [selectedCamId, setSelectedCamId] = useState("");
+  const [showDeviceMenu, setShowDeviceMenu] = useState(false);
+
 
   // Refs
   const wsRef = useRef(null);
@@ -231,7 +244,13 @@ export default function MeetingRoom() {
   const screenSharingRef = useRef(false);
   const participantIdRef = useRef(null);
 
-  const callTimer = useCallTimer();
+  const peerCount = Object.keys(peers).length;
+  const callStatusLabel = !callConnected
+    ? peerCount === 0
+      ? (audioOnly ? "Ringing..." : "Waiting...")
+      : "Connecting..."
+    : "";
+  const callTimer = useCallTimer(callConnected, callStatusLabel);
 
   // Sync refs with state
   useEffect(() => { micEnabledRef.current = micEnabled; }, [micEnabled]);
@@ -255,7 +274,7 @@ export default function MeetingRoom() {
         );
         if (tc) target = tc.sender;
       }
-      if (target) target.replaceTrack(newTrack).catch(e => console.warn(`replaceTrack(${kind}) failed:`, e));
+      if (target) target.replaceTrack(newTrack).catch(e => logger.warn(`replaceTrack(${kind}) failed:`, e));
     });
   }, []);
 
@@ -267,17 +286,62 @@ export default function MeetingRoom() {
       { video: true, audio: false },
       { video: false, audio: true },
     ];
+    let lastError = null;
     for (const constraints of attempts) {
       try {
         const s = await navigator.mediaDevices.getUserMedia(constraints);
         return { stream: s, hasVideo: !!s.getVideoTracks().length, hasAudio: !!s.getAudioTracks().length };
-      } catch (_) { /* try next */ }
+      } catch (err) { lastError = err; }
     }
+    
+    if (lastError?.name === 'NotAllowedError' || lastError?.name === 'PermissionDeniedError') {
+       logger.warn("Camera/Mic permissions denied by user.");
+       alert("Camera or Microphone access was denied. You will join the meeting in 'off' mode.");
+    } else if (lastError) {
+       logger.warn("Could not access media devices:", lastError);
+       alert("Could not access Camera/Microphone. You will join the meeting in 'off' mode.");
+    }
+
     return { stream: new MediaStream(), hasVideo: false, hasAudio: false };
   }, []);
 
+  const updateCallConnected = useCallback(() => {
+    const connected = Object.values(peersRef.current).some(
+      ({ pc }) => pc.connectionState === "connected"
+    );
+    setCallConnected(connected);
+  }, []);
+
+  const removePeer = useCallback((peerId) => {
+    const peer = peersRef.current[peerId];
+    if (peer) {
+      peer.pc.close();
+      delete peersRef.current[peerId];
+      setPeers(prev => { const c = { ...prev }; delete c[peerId]; return c; });
+      updateCallConnected();
+    }
+  }, [updateCallConnected]);
+
   // ---------- CREATE PEER CONNECTION ----------
-  const createPeerConnection = useCallback((peerId, peerUsername) => {
+    // Helper to safely replace or create a peer connection. Prevents duplicate joins from leaking connections.
+  const replacePeerConnection = (peerId, peerUsername) => {
+    // If an existing connection exists for this peer, clean it up first to
+    // prevent connection leaks when the same peer re-joins (e.g. page refresh
+    // or transient reconnect sends a duplicate peer_joined event).
+    if (peersRef.current[peerId]) {
+      logger.warn(`Duplicate join for peer ${peerId} – closing stale RTCPeerConnection.`);
+      const old = peersRef.current[peerId];
+      // IMPORTANT: Do NOT call s.track.stop() on senders here.
+      // RTCRtpSender.track is the LOCAL capture track (mic / camera) that
+      // this user's hardware is producing. Stopping it kills the local stream
+      // permanently, which is what caused this regression (A-01).
+      // pc.close() is sufficient: it terminates the peer connection and all
+      // associated DTLS / ICE state without touching local MediaStreamTracks.
+      old.pc.close();
+      delete peersRef.current[peerId];
+      setPeers(prev => { const copy = { ...prev }; delete copy[peerId]; return copy; });
+    }
+
     const pc = new RTCPeerConnection(RTC_CONFIG);
     const stream = activeStreamRef.current;
     if (stream) stream.getTracks().forEach(track => pc.addTrack(track, stream));
@@ -311,6 +375,11 @@ export default function MeetingRoom() {
     pc.onconnectionstatechange = () => {
       if (pc.connectionState === "failed") { if (pc.restartIce) pc.restartIce(); }
       if (pc.connectionState === "disconnected" || pc.connectionState === "closed") removePeer(peerId);
+      updateCallConnected();
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      updateCallConnected();
     };
 
     pc.onnegotiationneeded = async () => {
@@ -318,28 +387,30 @@ export default function MeetingRoom() {
         try {
           const offer = await pc.createOffer();
           await pc.setLocalDescription(offer);
-          wsRef.current?.send(JSON.stringify({ type: "offer", target: peerId, sdp: pc.localDescription }));
-        } catch (e) { console.warn("Renegotiation failed:", e); }
+          wsRef.current?.send(JSON.stringify({
+            type: "offer",
+            target: peerId,
+            sdp: pc.localDescription,
+            // A-03: include our own current media state so the answerer
+            // learns it without needing a separate media_state message.
+            micEnabled: micEnabledRef.current,
+            camEnabled: camEnabledRef.current,
+          }));
+        } catch (e) { logger.warn("Renegotiation failed:", e); }
       }
     };
 
     peersRef.current[peerId] = { pc, username: peerUsername, stream: null, isOfferer: false };
     setPeers(prev => ({ ...prev, [peerId]: { pc, username: peerUsername, stream: null } }));
     return pc;
-  }, []);
+  };
 
-  const removePeer = useCallback((peerId) => {
-    const peer = peersRef.current[peerId];
-    if (peer) {
-      peer.pc.close();
-      delete peersRef.current[peerId];
-      setPeers(prev => { const c = { ...prev }; delete c[peerId]; return c; });
-    }
-  }, []);
+  // Backwards compatible wrapper used elsewhere in this file.
+  const createPeerConnection = useCallback((peerId, peerUsername) => replacePeerConnection(peerId, peerUsername), [removePeer, updateCallConnected]);
 
   // ---------- SIGNALING ----------
   const handleSignalingMessage = useCallback(async (message) => {
-    const { type, sender_id, sender_username, sdp, candidate, target } = message;
+    const { type, sender_id, sender_username, sdp, candidate, target, micEnabled, camEnabled } = message;
     if (target && Number(target) !== Number(profile?.id)) return;
 
     switch (type) {
@@ -347,28 +418,113 @@ export default function MeetingRoom() {
         if (Number(sender_id) === Number(profile?.id)) return;
         const pc = createPeerConnection(sender_id, sender_username);
         peersRef.current[sender_id].isOfferer = true;
+
+        if (micEnabled !== undefined || camEnabled !== undefined) {
+          setPeers(prev => ({
+            ...prev,
+            [sender_id]: {
+              ...prev[sender_id],
+              micEnabled: micEnabled ?? true,
+              camEnabled: camEnabled ?? true
+            }
+          }));
+        }
+
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
-        wsRef.current?.send(JSON.stringify({ type: "offer", target: sender_id, sdp: pc.localDescription }));
+        wsRef.current?.send(JSON.stringify({
+          type: "offer",
+          target: sender_id,
+          sdp: pc.localDescription,
+          // A-03: include our own current media state in the offer so the
+          // joining/reconnecting peer learns it as part of SDP exchange.
+          micEnabled: micEnabledRef.current,
+          camEnabled: camEnabledRef.current,
+        }));
+
+        // Also re-send an explicit media_state so reconnecting clients learn
+        // our state immediately even if the offer arrives with a slight delay.
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+          wsRef.current.send(JSON.stringify({
+            type: 'media_state',
+            sender_id: profile?.id,
+            micEnabled: micEnabledRef.current,
+            camEnabled: camEnabledRef.current,
+          }));
+        }
+        break;
+      }
+      case "media_state": {
+        setPeers(prev => {
+          if (!prev[sender_id]) return prev;
+          return {
+            ...prev,
+            [sender_id]: {
+              ...prev[sender_id],
+              micEnabled,
+              camEnabled
+            }
+          };
+        });
         break;
       }
       case "offer": {
         let peer = peersRef.current[sender_id];
         const pc = peer ? peer.pc : createPeerConnection(sender_id, sender_username);
+
+        // A-03: apply the offerer's media state if carried in the offer payload.
+        if (message.micEnabled !== undefined || message.camEnabled !== undefined) {
+          setPeers(prev => {
+            if (!prev[sender_id]) return prev;
+            return {
+              ...prev,
+              [sender_id]: {
+                ...prev[sender_id],
+                micEnabled: message.micEnabled ?? prev[sender_id]?.micEnabled,
+                camEnabled: message.camEnabled ?? prev[sender_id]?.camEnabled,
+              },
+            };
+          });
+        }
+
         await pc.setRemoteDescription(new RTCSessionDescription(sdp));
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
-        wsRef.current?.send(JSON.stringify({ type: "answer", target: sender_id, sdp: pc.localDescription }));
+        wsRef.current?.send(JSON.stringify({
+          type: "answer",
+          target: sender_id,
+          sdp: pc.localDescription,
+          // A-03: echo our own media state in the answer so the offerer learns
+          // our state without needing a separate round-trip.
+          micEnabled: micEnabledRef.current,
+          camEnabled: camEnabledRef.current,
+        }));
         break;
       }
       case "answer": {
         const peer = peersRef.current[sender_id];
-        if (peer) await peer.pc.setRemoteDescription(new RTCSessionDescription(sdp));
+        if (peer) {
+          await peer.pc.setRemoteDescription(new RTCSessionDescription(sdp));
+          // A-03: apply the answerer's media state if carried in the answer payload.
+          if (message.micEnabled !== undefined || message.camEnabled !== undefined) {
+            setPeers(prev => {
+              if (!prev[sender_id]) return prev;
+              return {
+                ...prev,
+                [sender_id]: {
+                  ...prev[sender_id],
+                  micEnabled: message.micEnabled ?? prev[sender_id]?.micEnabled,
+                  camEnabled: message.camEnabled ?? prev[sender_id]?.camEnabled,
+                },
+              };
+            });
+          }
+        }
         break;
       }
       case "ice_candidate": {
         const peer = peersRef.current[sender_id];
-        if (peer && candidate) peer.pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(e => console.warn("addIceCandidate failed:", e));
+        if (peer && candidate) peer.pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(e => logger.warn("addIceCandidate failed:", e));
         break;
       }
       case "peer_left": {
@@ -380,21 +536,64 @@ export default function MeetingRoom() {
   }, [profile?.id, createPeerConnection, removePeer]);
 
   // ---------- WEBSOCKET ----------
-  const initWebSocket = useCallback(() => {
-    const token = localStorage.getItem("access");
-    if (!token) return;
-    const base = (import.meta.env.VITE_WS_URL || "ws://localhost:8000").replace(/\/$/, "");
-    const url = `${base}/ws/call/${meetingId}/?token=${encodeURIComponent(token)}`;
-    const socket = new WebSocket(url);
-    wsRef.current = socket;
-    socket.onopen = () => console.log("✅ Signaling WS connected");
-    socket.onmessage = async (e) => {
-      try { await handleSignalingMessage(JSON.parse(e.data)); }
-      catch (err) { console.error("Signaling error:", err); }
+  const initWebSocket = useCallback(async () => {
+    if (!getAccessToken()) return;
+    const connect = async () => {
+      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+      if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
+        setWsStatus('error');
+        return;
+      }
+      try {
+        const ticket = await fetchWsTicket();
+        const url = `${getWsBaseUrl()}/ws/call/${meetingId}/?ticket=${encodeURIComponent(ticket)}`;
+        const socket = new WebSocket(url);
+        wsRef.current = socket;
+
+        socket.onopen = () => {
+          logger.log('Signaling WS connected');
+          setWsStatus('connected');
+          reconnectAttemptsRef.current = 0;
+          wsRef.current.send(JSON.stringify({
+            type: 'peer_joined',
+            sender_id: profile?.id,
+            sender_username: profile?.username,
+            micEnabled: micEnabledRef.current,
+            camEnabled: camEnabledRef.current,
+          }));
+        };
+
+        socket.onmessage = async (e) => {
+          try { await handleSignalingMessage(JSON.parse(e.data)); }
+          catch (err) { logger.error('Signaling error:', err); }
+        };
+
+        socket.onerror = (e) => {
+          logger.error('WS error:', e);
+          socket.close();
+        };
+
+        socket.onclose = () => {
+          wsRef.current = null;
+          if (participantIdRef.current === null) return;
+          setWsStatus('reconnecting');
+          scheduleReconnect();
+        };
+      } catch (err) {
+        logger.error('Failed to connect signaling WS:', err);
+        setWsStatus('reconnecting');
+        scheduleReconnect();
+      }
     };
-    socket.onerror = (e) => console.error("WS error:", e);
-    socket.onclose = () => console.warn("WS closed");
-  }, [meetingId, handleSignalingMessage]);
+
+    const scheduleReconnect = () => {
+      reconnectAttemptsRef.current += 1;
+      const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
+      reconnectTimerRef.current = setTimeout(connect, delay);
+    };
+
+    connect();
+  }, [meetingId, handleSignalingMessage, profile?.id, profile?.username]);
 
   // ---------- INIT ----------
   useEffect(() => {
@@ -440,17 +639,22 @@ export default function MeetingRoom() {
 
     init();
 
-    return () => {
-      mounted = false;
-      cameraStreamRef.current?.getTracks().forEach(t => t.stop());
-      screenStreamRef.current?.getTracks().forEach(t => t.stop());
-      Object.values(peersRef.current).forEach(p => p.pc.close());
-      peersRef.current = {};
-      wsRef.current?.close();
-      if (participantIdRef.current) {
-        workspaceApi.updateParticipantStatus(meetingId, participantIdRef.current, { is_present: false }).catch(() => {});
-      }
-    };
+      return () => {
+        mounted = false;
+        // Cancel any pending reconnection attempts
+        if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+        // Signal intentional leave so onclose does not retry
+        const leaveId = participantIdRef.current;
+        participantIdRef.current = null;
+        cameraStreamRef.current?.getTracks().forEach(t => t.stop());
+        screenStreamRef.current?.getTracks().forEach(t => t.stop());
+        Object.values(peersRef.current).forEach(p => p.pc.close());
+        peersRef.current = {};
+        wsRef.current?.close();
+        if (leaveId) {
+          workspaceApi.updateParticipantStatus(meetingId, leaveId, { is_present: false }).catch(() => {});
+        }
+      };
   }, [meetingId]);
 
   // ---------- TOGGLE MIC ----------
@@ -463,6 +667,9 @@ export default function MeetingRoom() {
       audioTracks.forEach(t => { t.enabled = newState; });
       setMicEnabled(newState);
       micEnabledRef.current = newState;
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({ type: 'media_state', sender_id: profile?.id, micEnabled: newState, camEnabled: camEnabledRef.current }));
+      }
     } else {
       try {
         const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -471,9 +678,12 @@ export default function MeetingRoom() {
         replaceSenderTrack("audio", audioTrack);
         setMicEnabled(true);
         micEnabledRef.current = true;
-      } catch (err) { console.warn("Could not access microphone:", err); }
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+          wsRef.current.send(JSON.stringify({ type: 'media_state', sender_id: profile?.id, micEnabled: true, camEnabled: camEnabledRef.current }));
+        }
+      } catch (err) { logger.warn("Could not access microphone:", err); }
     }
-  }, [replaceSenderTrack]);
+  }, [replaceSenderTrack, profile?.id]);
 
   // ---------- TOGGLE CAMERA ----------
   const toggleCam = useCallback(async () => {
@@ -489,6 +699,9 @@ export default function MeetingRoom() {
         attachStream(localVideoRef.current, stream);
         attachStream(pipVideoRef.current, stream);
       }
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({ type: 'media_state', sender_id: profile?.id, micEnabled: micEnabledRef.current, camEnabled: newState }));
+      }
     } else {
       try {
         const camStream = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } });
@@ -501,9 +714,12 @@ export default function MeetingRoom() {
         }
         setCamEnabled(true);
         camEnabledRef.current = true;
-      } catch (err) { console.warn("Could not access camera:", err); }
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+          wsRef.current.send(JSON.stringify({ type: 'media_state', sender_id: profile?.id, micEnabled: micEnabledRef.current, camEnabled: true }));
+        }
+      } catch (err) { logger.warn("Could not access camera:", err); }
     }
-  }, [replaceSenderTrack]);
+  }, [replaceSenderTrack, profile?.id]);
 
   // ---------- SHARE SCREEN ----------
   const stopScreenShare = useCallback(async () => {
@@ -533,7 +749,7 @@ export default function MeetingRoom() {
       setScreenSharing(true);
       screenSharingRef.current = true;
       screenVideoTrack.addEventListener("ended", () => stopScreenShare(), { once: true });
-    } catch (err) { console.warn("Screen share cancelled or failed:", err); }
+    } catch (err) { logger.warn("Screen share cancelled or failed:", err); }
   }, [replaceSenderTrack, stopScreenShare]);
 
   // ---------- AUDIO-ONLY TOGGLE ----------
@@ -560,7 +776,7 @@ export default function MeetingRoom() {
           }
           setCamEnabled(true);
           camEnabledRef.current = true;
-        } catch (err) { console.warn("Could not access camera:", err); }
+        } catch (err) { logger.warn("Could not access camera:", err); }
       }
       setAudioOnly(false);
     } else {
@@ -594,12 +810,79 @@ export default function MeetingRoom() {
           replaceSenderTrack("audio", audioTrack);
           setMicEnabled(true);
           micEnabledRef.current = true;
-        } catch (err) { console.warn("Could not access microphone:", err); }
+        } catch (err) { logger.warn("Could not access microphone:", err); }
       }
 
       setAudioOnly(true);
     }
   }, [audioOnly, replaceSenderTrack]);
+
+  // ---------- A-05: DEVICE ENUMERATION + SWITCHING ----------
+  const enumerateDevices = useCallback(async () => {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      setDeviceList({
+        audio: devices.filter((d) => d.kind === "audioinput"),
+        video: devices.filter((d) => d.kind === "videoinput"),
+      });
+    } catch (err) {
+      logger.warn("enumerateDevices failed:", err);
+    }
+  }, []);
+
+  // Run once after initial getUserMedia (permissions grant labels).
+  useEffect(() => {
+    if (!loading) enumerateDevices();
+  }, [loading, enumerateDevices]);
+
+  const switchMic = useCallback(async (deviceId) => {
+    try {
+      const micStream = await navigator.mediaDevices.getUserMedia({ audio: { deviceId: { exact: deviceId } } });
+      const newTrack = micStream.getAudioTracks()[0];
+      const stream = cameraStreamRef.current;
+      if (stream) {
+        // Remove old audio tracks from the stream.
+        stream.getAudioTracks().forEach((t) => { t.stop(); stream.removeTrack(t); });
+        stream.addTrack(newTrack);
+      }
+      replaceSenderTrack("audio", newTrack);
+      setSelectedMicId(deviceId);
+      micEnabledRef.current = true;
+      setMicEnabled(true);
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({ type: "media_state", sender_id: profile?.id, micEnabled: true, camEnabled: camEnabledRef.current }));
+      }
+      enumerateDevices();
+    } catch (err) {
+      logger.warn("switchMic failed:", err);
+    }
+  }, [replaceSenderTrack, enumerateDevices, profile?.id]);
+
+  const switchCam = useCallback(async (deviceId) => {
+    try {
+      const camStream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: deviceId }, width: 1280, height: 720 } });
+      const newTrack = camStream.getVideoTracks()[0];
+      const stream = cameraStreamRef.current;
+      if (stream) {
+        stream.getVideoTracks().forEach((t) => { t.stop(); stream.removeTrack(t); });
+        stream.addTrack(newTrack);
+      }
+      if (!screenSharingRef.current) {
+        replaceSenderTrack("video", newTrack);
+        attachStream(localVideoRef.current, stream);
+        attachStream(pipVideoRef.current, stream);
+      }
+      setSelectedCamId(deviceId);
+      camEnabledRef.current = true;
+      setCamEnabled(true);
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({ type: "media_state", sender_id: profile?.id, micEnabled: micEnabledRef.current, camEnabled: true }));
+      }
+      enumerateDevices();
+    } catch (err) {
+      logger.warn("switchCam failed:", err);
+    }
+  }, [replaceSenderTrack, enumerateDevices, profile?.id]);
 
   // ---------- DISCONNECT ----------
   const handleDisconnect = useCallback(() => {
@@ -636,7 +919,7 @@ export default function MeetingRoom() {
   const totalCount = peersArray.length + 1;
   const userName = profile?.username || "You";
   const userInitials = userName.substring(0, 2).toUpperCase();
-  const userColors = getAvatarColor(userName);
+  const userColors = getAvatarGradient(userName);
   const isAudioMode = audioOnly && !screenSharing;
 
   return (
@@ -657,6 +940,8 @@ export default function MeetingRoom() {
             </div>
           )}
           <span className="gmeet__timer">{callTimer}</span>
+          {wsStatus === 'reconnecting' && (<span className="status-badge reconnecting">Reconnecting…</span>)}
+          {wsStatus === 'lost' && (<span className="status-badge lost">Connection lost – please rejoin</span>)}
         </div>
         <div className="gmeet__header-right">
           <div className="gmeet__participants-badge">
@@ -728,7 +1013,7 @@ export default function MeetingRoom() {
           {peersArray.length > 0 && (
             <div className="meet-pip">
               <video
-                ref={localVideoRef}
+                ref={pipVideoRef}
                 autoPlay
                 playsInline
                 muted
@@ -809,6 +1094,78 @@ export default function MeetingRoom() {
             <span className="ctrl-btn__icon"><Hand size={20} /></span>
             <span className="ctrl-btn__label">React</span>
           </button>
+        </div>
+
+        {/* A-05: Device Settings button + popover */}
+        <div className="ctrl-device-wrap">
+          <button
+            id="device-settings-btn"
+            className={`ctrl-btn ctrl-btn--settings ${showDeviceMenu ? "ctrl-btn--active" : ""}`}
+            onClick={() => {
+              enumerateDevices();
+              setShowDeviceMenu((v) => !v);
+            }}
+            title="Audio &amp; video settings"
+          >
+            <span className="ctrl-btn__icon"><Settings size={18} /></span>
+            <span className="ctrl-btn__label">Settings</span>
+          </button>
+
+          {showDeviceMenu && (
+            <div id="device-menu" className="device-menu" role="dialog" aria-label="Device settings">
+              <button
+                className="device-menu__close"
+                onClick={() => setShowDeviceMenu(false)}
+                aria-label="Close device settings"
+              >
+                ✕
+              </button>
+
+              {deviceList.audio.length > 0 && (
+                <div className="device-menu__section">
+                  <label className="device-menu__label" htmlFor="mic-select">
+                    <Mic size={13} /> Microphone
+                  </label>
+                  <select
+                    id="mic-select"
+                    className="device-menu__select"
+                    value={selectedMicId}
+                    onChange={(e) => switchMic(e.target.value)}
+                  >
+                    {deviceList.audio.map((d) => (
+                      <option key={d.deviceId} value={d.deviceId}>
+                        {d.label || `Microphone ${d.deviceId.slice(0, 6)}`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {deviceList.video.length > 0 && (
+                <div className="device-menu__section">
+                  <label className="device-menu__label" htmlFor="cam-select">
+                    <VideoIcon size={13} /> Camera
+                  </label>
+                  <select
+                    id="cam-select"
+                    className="device-menu__select"
+                    value={selectedCamId}
+                    onChange={(e) => switchCam(e.target.value)}
+                  >
+                    {deviceList.video.map((d) => (
+                      <option key={d.deviceId} value={d.deviceId}>
+                        {d.label || `Camera ${d.deviceId.slice(0, 6)}`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {deviceList.audio.length === 0 && deviceList.video.length === 0 && (
+                <p className="device-menu__empty">No devices found. Grant camera/mic permissions first.</p>
+              )}
+            </div>
+          )}
         </div>
 
         <button className="ctrl-btn ctrl-btn--leave" onClick={handleDisconnect}>

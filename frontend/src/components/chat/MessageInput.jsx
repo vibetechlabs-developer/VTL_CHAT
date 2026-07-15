@@ -26,6 +26,7 @@ export default function MessageInput({
   const inputRef = useRef(null);
   const containerRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const lastTypingSentRef = useRef(0);
 
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showMentions, setShowMentions] = useState(false);
@@ -73,7 +74,11 @@ export default function MessageInput({
 
     // Typing indicator logic
     if (onTyping) {
-      onTyping(true);
+      const now = Date.now();
+      if (now - lastTypingSentRef.current >= 2000) {
+        onTyping(true);
+        lastTypingSentRef.current = now;
+      }
       clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = setTimeout(() => onTyping(false), 2000);
     }

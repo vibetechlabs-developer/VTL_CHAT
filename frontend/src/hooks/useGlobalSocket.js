@@ -1,67 +1,79 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
+import { fetchWsTicket, getWsBaseUrl } from "../services/wsTicket";
+import { getAccessToken, onAccessTokenChange } from "../services/api";
 
-const getWsBaseUrl = () => {
-  const configured = import.meta.env.VITE_WS_URL;
-  if (configured) return configured.replace(/\/$/, "");
-  const apiUrl = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api";
-  const origin = apiUrl.replace(/\/api\/?$/, "");
-  return origin.replace(/^http/, "ws");
-};
-
-/**
- * Global user-level WebSocket for receiving real-time events
- * (notifications, system alerts, etc.) without polling.
- */
 export function useGlobalSocket(onEvent) {
   const onEventRef = useRef(onEvent);
   const [status, setStatus] = useState("disconnected");
+  const [authVersion, setAuthVersion] = useState(0);
 
   useEffect(() => {
     onEventRef.current = onEvent;
   }, [onEvent]);
 
+  useEffect(() => onAccessTokenChange(() => setAuthVersion((v) => v + 1)), []);
+
   useEffect(() => {
-    const token = localStorage.getItem("access");
-    if (!token) return;
+    if (!getAccessToken()) return;
 
     let socket = null;
     let reconnectTimeout = null;
     let retryCount = 0;
     let cleanedUp = false;
 
-    const connect = () => {
+    const connect = async () => {
       if (cleanedUp) return;
 
-      const wsUrl = `${getWsBaseUrl()}/ws/events/?token=${encodeURIComponent(token)}`;
-      socket = new WebSocket(wsUrl);
+      try {
+        const ticket = await fetchWsTicket();
+        if (cleanedUp) return;
 
-      socket.onopen = () => {
-        if (cleanedUp) { socket.close(); return; }
-        setStatus("connected");
-        retryCount = 0;
-      };
+        const wsUrl = `${getWsBaseUrl()}/ws/events/?ticket=${encodeURIComponent(ticket)}`;
+        socket = new WebSocket(wsUrl);
 
-      socket.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          onEventRef.current?.(data);
-        } catch {
-          // ignore
+        socket.onopen = () => {
+          if (cleanedUp) {
+            socket.close();
+            return;
+          }
+          setStatus("connected");
+          retryCount = 0;
+        };
+
+        socket.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            onEventRef.current?.(data);
+          } catch {
+            // ignore
+          }
+        };
+
+        socket.onclose = (event) => {
+          if (cleanedUp) return;
+          const closeCode = event ? event.code : null;
+          if (closeCode === 4001 || closeCode === 4003 || closeCode === 4004) {
+            setStatus("disconnected");
+            window.location.href = "/";
+            return;
+          }
+          setStatus("disconnected");
+          retryCount++;
+          const delay = Math.min(1000 * Math.pow(2, retryCount), 30000);
+          reconnectTimeout = setTimeout(connect, delay);
+        };
+
+        socket.onerror = () => {
+          if (cleanedUp) return;
+          socket.close();
+        };
+      } catch {
+        if (!cleanedUp) {
+          retryCount++;
+          const delay = Math.min(1000 * Math.pow(2, retryCount), 30000);
+          reconnectTimeout = setTimeout(connect, delay);
         }
-      };
-
-      socket.onclose = () => {
-        if (cleanedUp) return;
-        setStatus("disconnected");
-        retryCount++;
-        const delay = Math.min(1000 * Math.pow(2, retryCount), 30000);
-        reconnectTimeout = setTimeout(connect, delay);
-      };
-
-      socket.onerror = () => {
-        if (cleanedUp) return;
-        socket.close();
-      };
+      }
     };
 
     connect();
@@ -71,7 +83,7 @@ export function useGlobalSocket(onEvent) {
       if (socket) socket.close();
       if (reconnectTimeout) clearTimeout(reconnectTimeout);
     };
-  }, []);
+  }, [authVersion]);
 
   return { globalSocketStatus: status };
 }

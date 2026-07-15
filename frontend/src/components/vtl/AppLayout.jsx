@@ -1,7 +1,9 @@
+import { useState } from "react";
 import AuroraBackground from "./AuroraBackground";
 import FloatingSidebar from "./FloatingSidebar";
 import ContextSidebar from "./ContextSidebar";
 import TopBar from "./TopBar";
+import { SkeletonList } from "./Skeleton";
 import "./AppLayout.scss";
 
 export default function AppLayout({
@@ -20,12 +22,14 @@ export default function AppLayout({
   error,
   unreadNotificationCount = 0,
 }) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   if (loading) {
     return (
       <div className="app-layout app-layout--loading">
         <AuroraBackground />
-        <div className="app-layout__loader">
-          <div className="app-layout__loader-ring" />
+        <div className="app-layout__loader app-layout__loader--skeleton">
+          <SkeletonList count={4} />
           <span>Loading workspace...</span>
         </div>
       </div>
@@ -45,6 +49,14 @@ export default function AppLayout({
     <div className="app-layout">
       <AuroraBackground />
 
+      {/* Backdrop overlay for mobile menu drawer */}
+      {mobileMenuOpen && (
+        <div 
+          className="app-layout__backdrop" 
+          onClick={() => setMobileMenuOpen(false)} 
+        />
+      )}
+
       {/* Column A: Slim Left App Bar */}
       <FloatingSidebar
         onLogout={onLogout}
@@ -53,7 +65,10 @@ export default function AppLayout({
       />
 
       {/* Column B: Context-aware Secondary Sidebar */}
-      <ContextSidebar />
+      <ContextSidebar 
+        isOpen={mobileMenuOpen} 
+        onClose={() => setMobileMenuOpen(false)} 
+      />
 
       {/* Column C: Main Workspace */}
       <div className="app-layout__main">
@@ -70,6 +85,7 @@ export default function AppLayout({
           email={profile?.email}
           unreadCount={unreadNotificationCount}
           onLogout={onLogout}
+          onMenuClick={() => setMobileMenuOpen(true)}
         />
         <div className={`app-layout__content ${fullBleed ? "app-layout__content--full" : "app-layout__content--padded"}`}>
           {children}

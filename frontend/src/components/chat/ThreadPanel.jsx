@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { X, Send, Loader2 } from "lucide-react";
 import { formatMessageTime, getAvatarColor, getInitials, parseMentions } from "../../utils/helpers";
+import { fetchAllCursorPages } from "../../utils/pagination";
+import logger from "../../utils/logger";
 import "./ThreadPanel.scss";
 import * as workspaceApi from "../../services/workspaceApi";
 
@@ -25,13 +27,14 @@ export default function ThreadPanel({
         // workspaceApi.getMessages expects (channelId, parentId) we might need to add parentId arg
         // wait, getMessages signature in workspaceApi might be (channelId) only!
         // We will need to update workspaceApi.js
-        const res = await workspaceApi.getMessages(parentMessage.channel, parentMessage.id);
+        const list = await fetchAllCursorPages((url) =>
+          workspaceApi.getMessages(parentMessage.channel, parentMessage.id, url)
+        );
         if (active) {
-          const list = Array.isArray(res.data) ? res.data : (res.data.results || []);
           setReplies(list);
         }
       } catch (err) {
-        console.error("Failed to fetch replies", err);
+        logger.error("Failed to fetch replies", err);
       } finally {
         if (active) setLoading(false);
       }
@@ -59,7 +62,7 @@ export default function ThreadPanel({
         setReplyContent("");
       }
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     } finally {
       setSending(false);
     }

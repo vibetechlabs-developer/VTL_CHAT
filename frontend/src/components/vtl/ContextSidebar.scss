@@ -1,7 +1,6 @@
 @use "../../styles/variables" as *;
 @use "../../styles/mixins" as *;
 
-// Secondary sidebar — Column B
 .context-sidebar {
   width: 260px;
   min-width: 260px;
@@ -15,6 +14,33 @@
   overflow: hidden;
   position: relative;
   z-index: $z-sidebar - 1;
+
+  &--collapsed {
+    width: 48px;
+    min-width: 48px;
+  }
+
+  &__collapse-btn {
+    position: absolute;
+    top: 14px;
+    right: 8px;
+    z-index: 2;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    color: $text-secondary;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  &--collapsed &__collapse-btn {
+    right: 50%;
+    transform: translateX(50%);
+  }
 
 
   &__header {
@@ -52,6 +78,26 @@
     &:hover {
       color: $text-primary;
       background: rgba(255, 255, 255, 0.06);
+    }
+
+    &--labeled {
+      width: auto;
+      height: 26px;
+      padding: 0 0.5rem;
+      gap: 0.25rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+      background: rgba(124, 58, 237, 0.15);
+      border: 1px solid rgba(124, 58, 237, 0.3);
+      color: $accent-purple-light;
+      display: flex;
+      align-items: center;
+
+      &:hover {
+        background: rgba(124, 58, 237, 0.25);
+        border-color: rgba(124, 58, 237, 0.5);
+        color: white;
+      }
     }
   }
 
@@ -474,8 +520,25 @@
   }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1023px) {
   .context-sidebar {
-    display: none;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: $z-sidebar + 10;
+    transform: translateX(-100%);
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+    background: rgba(14, 17, 38, 0.98);
+    display: flex;
+
+    &--open {
+      transform: translateX(0);
+    }
+
+    &__collapse-btn {
+      display: none;
+    }
   }
 }

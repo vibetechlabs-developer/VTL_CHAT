@@ -6,10 +6,10 @@ $chat-topbar-height: 58px;
   display: flex;
   flex: 1;
   min-height: 0;
-  height: calc(100vh - #{$chat-topbar-height});
+  height: 100%;
   width: 100%;
   overflow: hidden;
-
+  
   &__main {
     flex: 1;
     display: flex;
@@ -56,8 +56,3 @@ $chat-topbar-height: 58px;
   }
 }
 
-@media (max-width: 768px) {
-  .chat-workspace {
-    height: calc(100vh - #{$chat-topbar-height} - 60px);
-  }
-}

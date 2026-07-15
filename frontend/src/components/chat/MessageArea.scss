@@ -4,7 +4,8 @@
 .message-area {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   min-width: 0;
   background: transparent;
   border-radius: 0;
@@ -69,13 +70,13 @@
       color: $text-primary;
       padding: 0.25rem 0.5rem;
       font-size: 0.8rem;
-      width: 150px;
+      width: 130px;
       transition: width 0.2s ease, border-color 0.2s ease;
 
       &:focus {
         outline: none;
         border-color: rgba(124, 58, 237, 0.5);
-        width: 180px;
+        width: 160px;
       }
     }
 
@@ -141,11 +142,125 @@
     }
   }
 
+  &__more-wrapper {
+    position: relative;
+    display: inline-flex;
+    
+    @media (min-width: 1024px) {
+      display: none !important; // Hide more button entirely on desktop since everything is inline
+    }
+  }
+
+  &__more-dropdown {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    width: 190px;
+    background: rgba(11, 15, 30, 0.96);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    padding: 0.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    z-index: 100;
+    animation: appLayoutFadeIn 0.15s ease-out;
+  }
+
+  &__dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.5rem 0.75rem;
+    color: $text-secondary;
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    transition: $transition-fast;
+    border: none;
+    background: transparent;
+    text-align: left;
+    width: 100%;
+    cursor: pointer;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.06);
+      color: white;
+    }
+
+    &--danger {
+      color: #f87171;
+
+      &:hover {
+        background: rgba(239, 68, 68, 0.15);
+        color: #ef4444;
+      }
+    }
+    
+    &.active {
+      background: rgba(124, 58, 237, 0.15);
+      color: $accent-purple-light;
+    }
+  }
+
+  // Breakpoint rules for toolbar buttons
+  @media (max-width: 1023px) {
+    .message-area__toolbar-btn {
+      &--pinned, &--notifications, &--members, &--clear {
+        display: none !important;
+      }
+    }
+    .message-area__dropdown-item {
+      &--audio, &--video {
+        display: none !important; // still inline on tablet
+      }
+    }
+  }
+
+  @media (max-width: 767px) {
+    .message-area__toolbar-btn {
+      &--audio, &--video, &--pinned, &--notifications, &--members, &--clear {
+        display: none !important;
+      }
+    }
+    .message-area__dropdown-item {
+      &--audio, &--video {
+        display: flex !important; // show in dropdown on mobile
+      }
+    }
+    
+    // Squeeze the search input to fit on mobile
+    .message-area__search-input {
+      width: 90px !important;
+      &:focus {
+        width: 110px !important;
+      }
+    }
+  }
+
   &__messages {
     flex: 1;
     overflow-y: auto;
     padding: 1rem 1.25rem;
     @include scrollbar;
+  }
+
+  &__top-sentinel {
+    height: 1px;
+    width: 100%;
+  }
+
+  &__loading-older {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 0 1rem;
+    color: $text-dim;
+    font-size: 0.85rem;
   }
 
   &__loading,
@@ -249,7 +364,19 @@
 
     &--optimistic {
       opacity: 0.6;
-      pointer-events: none;
+    }
+  }
+
+  &__error-state {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+    color: #ef4444;
+    font-size: 0.75rem;
+
+    .message-area__error-icon {
+      flex-shrink: 0;
     }
   }
 
@@ -826,6 +953,14 @@
       color: $text-muted;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
       font-weight: 500;
+      max-width: 90%; // Fluid max-width to prevent overflow on mobile
+      box-sizing: border-box;
+
+      span {
+        word-break: break-word;
+        white-space: normal;
+        text-align: left;
+      }
     }
 
     &-icon {

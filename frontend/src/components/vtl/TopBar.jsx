@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Search, Bell, Video, ChevronDown, User, Settings, LogOut } from "lucide-react";
+import { Search, Bell, Video, ChevronDown, User, Settings, LogOut, Menu } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useSettings } from "../../context/SettingsContext";
 import "./TopBar.scss";
@@ -17,6 +17,8 @@ export default function TopBar({
   showSearch = true,
   unreadCount = 0,
   onLogout,
+  onMenuClick,
+  backButton = null, // Optional JSX: rendered left of title on mobile
 }) {
   const { settings } = useSettings();
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -42,6 +44,19 @@ export default function TopBar({
   return (
     <header className="topbar">
       <div className="topbar__left">
+        {backButton ? (
+          // On mobile, render back arrow instead of hamburger
+          <div className="topbar__back-slot">{backButton}</div>
+        ) : (
+          <button 
+            type="button" 
+            className="topbar__menu-btn" 
+            onClick={onMenuClick}
+            title="Open Menu"
+          >
+            <Menu size={20} />
+          </button>
+        )}
         <div className="topbar__titles">
           <h1>{title}</h1>
           {subtitle && <p>{subtitle}</p>}

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useConfirm } from "../../context/ConfirmContext";
 import {
@@ -20,18 +20,20 @@ import {
   PhoneCall,
   PhoneOff,
   Video,
+  AlertCircle,
 } from "lucide-react";
 import {
   formatMessageTime,
   getInitials,
   getAvatarColor,
   groupReactions,
-  REACTION_EMOJI,
-  REACTION_TYPES,
   getMediaUrl,
   getFileName,
   getChannelDisplayName,
 } from "../../utils/helpers";
+import { useReactionChoices } from "../../hooks/useReactionChoices";
+import Skeleton from "../vtl/Skeleton";
+import DOMPurify from "dompurify";
 import "./MessageArea.scss";
 
 const renderContentWithMentions = (content, usersMap, onDMSelect) => {
@@ -58,7 +60,7 @@ const renderContentWithMentions = (content, usersMap, onDMSelect) => {
       }
       return <span key={i} className="mention mention--unknown">{part}</span>;
     }
-    return part;
+    return DOMPurify.sanitize(part);
   });
 };
 
@@ -70,6 +72,9 @@ export default function MessageArea({
   reactions = [],
   attachments = [],
   loading,
+  loadingOlder = false,
+  hasOlder = false,
+  onLoadOlder,
   typingUsers = {},
   onReact,
   reactingId,
@@ -83,13 +88,32 @@ export default function MessageArea({
   onAudioCall,
 }) {
   const confirm = useConfirm();
+  const { reactionEmoji, reactionTypes } = useReactionChoices();
   const bottomRef = useRef(null);
+  const scrollRef = useRef(null);
+  const topSentinelRef = useRef(null);
+  const shouldStickToBottomRef = useRef(true);
+  const prevScrollHeightRef = useRef(0);
+  const prevMessageCountRef = useRef(0);
   const [hoveredId, setHoveredId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearchInput, setShowSearchInput] = useState(false);
   const [showPinnedOnly, setShowPinnedOnly] = useState(false);
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [editingText, setEditingText] = useState("");
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const moreMenuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target)) {
+        setMoreMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const channelName = getChannelDisplayName(channel, profile?.id, usersMap);
 
   const [previewAttachment, setPreviewAttachment] = useState(null);
@@ -111,9 +135,48 @@ export default function MessageArea({
     }
   };
 
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    if (messages.length > prevMessageCountRef.current && prevScrollHeightRef.current > 0) {
+      el.scrollTop += el.scrollHeight - prevScrollHeightRef.current;
+      prevScrollHeightRef.current = 0;
+    }
+    prevMessageCountRef.current = messages.length;
+  }, [messages.length]);
+
   useEffect(() => {
+    if (loadingOlder) return;
+    if (!shouldStickToBottomRef.current) return;
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, attachments]);
+  }, [messages, attachments, loading, loadingOlder]);
+
+  useEffect(() => {
+    if (!onLoadOlder || !hasOlder || loadingOlder) return;
+    const root = scrollRef.current;
+    const sentinel = topSentinelRef.current;
+    if (!root || !sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          prevScrollHeightRef.current = root.scrollHeight;
+          onLoadOlder();
+        }
+      },
+      { root, rootMargin: "120px", threshold: 0 }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [onLoadOlder, hasOlder, loadingOlder, messages.length]);
+
+  const handleScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    shouldStickToBottomRef.current = distanceFromBottom < 120;
+  };
 
   const reactionsByMessage = reactions.reduce((acc, r) => {
     if (!acc[r.message]) acc[r.message] = [];
@@ -198,7 +261,7 @@ export default function MessageArea({
           <button 
             type="button" 
             title="Search"
-            className={showSearchInput ? "active" : ""}
+            className={`message-area__toolbar-btn message-area__toolbar-btn--search ${showSearchInput ? "active" : ""}`}
             onClick={() => {
               setShowSearchInput(!showSearchInput);
               if (showSearchInput) setSearchQuery("");
@@ -212,7 +275,7 @@ export default function MessageArea({
             <button
               type="button"
               title="Start audio call"
-              className="message-area__call-btn message-area__call-btn--audio"
+              className="message-area__call-btn message-area__call-btn--audio message-area__toolbar-btn message-area__toolbar-btn--audio"
               onClick={onAudioCall}
             >
               <PhoneCall size={18} />
@@ -222,7 +285,7 @@ export default function MessageArea({
             <button
               type="button"
               title="Start video call"
-              className="message-area__call-btn message-area__call-btn--video"
+              className="message-area__call-btn message-area__call-btn--video message-area__toolbar-btn message-area__toolbar-btn--video"
               onClick={onVideoCall}
             >
               <Video size={18} />
@@ -231,7 +294,7 @@ export default function MessageArea({
           <button 
             type="button" 
             title="Pinned"
-            className={showPinnedOnly ? "active" : ""}
+            className={`message-area__toolbar-btn message-area__toolbar-btn--pinned ${showPinnedOnly ? "active" : ""}`}
             onClick={() => setShowPinnedOnly(!showPinnedOnly)}
           >
             <Pin size={18} />
@@ -239,6 +302,7 @@ export default function MessageArea({
           <button
             type="button"
             title="Notifications"
+            className="message-area__toolbar-btn message-area__toolbar-btn--notifications"
             onClick={() =>
               confirm({
                 title: "Notifications",
@@ -250,34 +314,129 @@ export default function MessageArea({
           >
             <Bell size={18} />
           </button>
-          <button type="button" title="Members" onClick={onToggleMembers}><Users size={18} /></button>
+          <button 
+            type="button" 
+            title="Members" 
+            className="message-area__toolbar-btn message-area__toolbar-btn--members"
+            onClick={onToggleMembers}
+          >
+            <Users size={18} />
+          </button>
           {onClearChat && (
             <button
               type="button"
               title="Clear Chat"
+              className="message-area__toolbar-btn message-area__toolbar-btn--clear"
               onClick={handleClearClick}
             >
               <Trash2 size={18} />
             </button>
           )}
-          <button
-            type="button"
-            title="More"
-            onClick={() =>
-              confirm({
-                title: "More Options",
-                message: "More options coming soon!",
-                confirmText: "OK",
-                cancelText: null,
-              })
-            }
-          >
-            <MoreHorizontal size={18} />
-          </button>
+
+          {/* More options wrapper */}
+          <div className="message-area__more-wrapper" ref={moreMenuRef}>
+            <button
+              type="button"
+              title="More options"
+              className={moreMenuOpen ? "active" : ""}
+              onClick={() => setMoreMenuOpen(!moreMenuOpen)}
+            >
+              <MoreHorizontal size={18} />
+            </button>
+
+            {moreMenuOpen && (
+              <div className="message-area__more-dropdown">
+                {onAudioCall && (
+                  <button
+                    type="button"
+                    className="message-area__dropdown-item message-area__dropdown-item--audio"
+                    onClick={() => {
+                      setMoreMenuOpen(false);
+                      onAudioCall();
+                    }}
+                  >
+                    <PhoneCall size={15} />
+                    <span>Audio Call</span>
+                  </button>
+                )}
+                {onVideoCall && (
+                  <button
+                    type="button"
+                    className="message-area__dropdown-item message-area__dropdown-item--video"
+                    onClick={() => {
+                      setMoreMenuOpen(false);
+                      onVideoCall();
+                    }}
+                  >
+                    <Video size={15} />
+                    <span>Video Call</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className={`message-area__dropdown-item message-area__dropdown-item--pinned ${showPinnedOnly ? "active" : ""}`}
+                  onClick={() => {
+                    setMoreMenuOpen(false);
+                    setShowPinnedOnly(!showPinnedOnly);
+                  }}
+                >
+                  <Pin size={15} />
+                  <span>Pinned Messages</span>
+                </button>
+                <button
+                  type="button"
+                  className="message-area__dropdown-item message-area__dropdown-item--notifications"
+                  onClick={() => {
+                    setMoreMenuOpen(false);
+                    confirm({
+                      title: "Notifications",
+                      message: "Notifications coming soon!",
+                      confirmText: "OK",
+                      cancelText: null,
+                    });
+                  }}
+                >
+                  <Bell size={15} />
+                  <span>Notifications</span>
+                </button>
+                <button
+                  type="button"
+                  className="message-area__dropdown-item message-area__dropdown-item--members"
+                  onClick={() => {
+                    setMoreMenuOpen(false);
+                    onToggleMembers();
+                  }}
+                >
+                  <Users size={15} />
+                  <span>Members</span>
+                </button>
+                {onClearChat && (
+                  <button
+                    type="button"
+                    className="message-area__dropdown-item message-area__dropdown-item--clear message-area__dropdown-item--danger"
+                    onClick={() => {
+                      setMoreMenuOpen(false);
+                      handleClearClick();
+                    }}
+                  >
+                    <Trash2 size={15} />
+                    <span>Clear Chat</span>
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
-      <div className="message-area__messages">
+      <div className="message-area__messages" ref={scrollRef} onScroll={handleScroll}>
+        <div ref={topSentinelRef} className="message-area__top-sentinel" aria-hidden="true" />
+        {loadingOlder && (
+          <div className="message-area__loading-older">
+            <Loader2 size={18} className="spin" />
+            <span>Loading older messages...</span>
+          </div>
+        )}
         <div className="message-area__welcome">
           <div className="message-area__welcome-icon">
             {channel?.channel_type === "DIRECT" ? (() => {
@@ -310,9 +469,20 @@ export default function MessageArea({
         </div>
 
         {loading && (
-          <div className="message-area__loading">
-            <Loader2 size={24} className="spin" />
-            <span>Loading messages...</span>
+          <div className="message-area__loading-skeletons" style={{ display: "flex", flexDirection: "column", gap: "1.5rem", padding: "1rem" }}>
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} style={{ display: "flex", gap: "1rem" }}>
+                <Skeleton width="40px" height="40px" borderRadius="12px" />
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                  <div style={{ display: "flex", gap: "0.5rem" }}>
+                    <Skeleton width="120px" height="1rem" />
+                    <Skeleton width="60px" height="1rem" />
+                  </div>
+                  <Skeleton width={`${80 - (i % 3) * 15}%`} height="1rem" />
+                  {i % 2 === 0 && <Skeleton width="60%" height="1rem" />}
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
@@ -389,7 +559,7 @@ export default function MessageArea({
                       <Pin size={14} className={msg.is_pinned ? "pinned-active" : ""} />
                     </button>
                     <div className="message-area__reaction-picker-divider" />
-                    {REACTION_TYPES.map((type) => {
+                    {reactionTypes.map((type) => {
                       const isActive = myReaction?.reaction_type === type;
                       return (
                       <button
@@ -398,11 +568,11 @@ export default function MessageArea({
                         className={`message-area__reaction-pick ${
                           isActive ? "message-area__reaction-pick--active" : ""
                         }`}
-                        title={isActive ? "Remove reaction" : `React with ${REACTION_EMOJI[type]}`}
+                        title={isActive ? "Remove reaction" : `React with ${reactionEmoji[type]}`}
                         onClick={() => handleReact(msg.id, type)}
                         disabled={reactingId === msg.id}
                       >
-                        {REACTION_EMOJI[type]}
+                        {reactionEmoji[type]}
                       </button>
                     );})}
                     {isSelf && (
@@ -483,7 +653,15 @@ export default function MessageArea({
                       </div>
                     </div>
                   ) : (
-                    displayContent && <p className="message-area__text">{renderContentWithMentions(displayContent, usersMap, onDMSelect)}</p>
+                    <>
+                      {displayContent && <p className="message-area__text">{renderContentWithMentions(displayContent, usersMap, onDMSelect)}</p>}
+                      {msg.isError && (
+                        <div className="message-area__error-state">
+                          <AlertCircle size={14} className="message-area__error-icon" />
+                          <span>Message failed to send. Please try again.</span>
+                        </div>
+                      )}
+                    </>
                   )}
 
                   {msgAttachments.length > 0 && (
@@ -559,7 +737,7 @@ export default function MessageArea({
                         onClick={() => handleReact(msg.id, r.type)}
                         disabled={reactingId === msg.id}
                       >
-                        <span className="message-area__reaction-emoji">{REACTION_EMOJI[r.type] || "👍"}</span>
+                        <span className="message-area__reaction-emoji">{reactionEmoji[r.type] || "👍"}</span>
                         <span className="message-area__reaction-count">{r.count}</span>
                         {isMine && (
                           <span className="message-area__reaction-remove">

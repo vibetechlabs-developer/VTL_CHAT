@@ -9,9 +9,7 @@ class Organization(models.Model):
     description = models.TextField(blank=True)
 
     created_by = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='organizations_created'
+        User, on_delete=models.CASCADE, related_name="organizations_created"
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -20,34 +18,51 @@ class Organization(models.Model):
         return self.name
 
 
+class OrganizationMember(models.Model):
+
+    ROLE_CHOICES = (
+        ("OWNER", "Owner"),
+        ("ADMIN", "Admin"),
+        ("MEMBER", "Member"),
+    )
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="organization_memberships"
+    )
+
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name="members")
+
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="MEMBER")
+
+    joined_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "organization"], name="unique_organization_member"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} - {self.organization.name}"
+
+
 class Team(models.Model):
 
     TEAM_TYPES = (
-        ('PUBLIC', 'Public'),
-        ('PRIVATE', 'Private'),
+        ("PUBLIC", "Public"),
+        ("PRIVATE", "Private"),
     )
 
     name = models.CharField(max_length=100)
 
     description = models.TextField(blank=True)
 
-    organization = models.ForeignKey(
-        Organization,
-        on_delete=models.CASCADE,
-        related_name='teams'
-    )
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name="teams")
 
-    created_by = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='created_teams'
-    )
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="created_teams")
 
-    team_type = models.CharField(
-        max_length=20,
-        choices=TEAM_TYPES,
-        default='PUBLIC'
-    )
+    team_type = models.CharField(max_length=20, choices=TEAM_TYPES, default="PUBLIC")
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -57,52 +72,75 @@ class Team(models.Model):
 
 class TeamMember(models.Model):
 
-    
     ROLE_CHOICES = (
-        ('ADMIN', 'Admin'),
-        ('MEMBER', 'Member'),
+        ("ADMIN", "Admin"),
+        ("MEMBER", "Member"),
     )
 
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='team_memberships'
-    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="team_memberships")
 
-    team = models.ForeignKey(
-        Team,
-        on_delete=models.CASCADE,
-        related_name='members'
-    )
+    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="members")
 
-    role = models.CharField(
-        max_length=20,
-        choices=ROLE_CHOICES,
-        default='MEMBER'
-    )
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="MEMBER")
 
     joined_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.user.username} - {self.team.name}"
-  
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["user", "team"], name="unique_team_member")]
+
+
+class Group(models.Model):
+
+    name = models.CharField(max_length=100)
+
+    description = models.TextField(blank=True)
+
+    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="groups")
+
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="created_groups")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
     class Meta:
         constraints = [
-            models.UniqueConstraint(
-                fields=["user", "team"],
-                name="unique_team_member"
-            )
+            models.UniqueConstraint(fields=["team", "name"], name="unique_group_name_per_team")
         ]
 
-        
+    def __str__(self):
+        return f"{self.team.name} - {self.name}"
+
+
+class GroupMember(models.Model):
+
+    ROLE_CHOICES = (
+        ("ADMIN", "Admin"),
+        ("MEMBER", "Member"),
+    )
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="group_memberships")
+
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name="members")
+
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="MEMBER")
+
+    joined_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["user", "group"], name="unique_group_member")]
+
+    def __str__(self):
+        return f"{self.user.username} - {self.group.name}"
 
 
 class Channel(models.Model):
 
     CHANNEL_TYPES = (
-        ('PUBLIC', 'Public'),
-        ('PRIVATE', 'Private'),
-        ('DIRECT', 'Direct Message'),
+        ("PUBLIC", "Public"),
+        ("PRIVATE", "Private"),
+        ("DIRECT", "Direct Message"),
     )
 
     name = models.CharField(max_length=100)
@@ -112,27 +150,27 @@ class Channel(models.Model):
     team = models.ForeignKey(
         Team,
         on_delete=models.CASCADE,
-        related_name='channels',
+        related_name="channels",
         null=True,
         blank=True,
     )
 
-    created_by = models.ForeignKey(
-        User,
+    group = models.ForeignKey(
+        Group,
         on_delete=models.CASCADE,
-        related_name='created_channels'
+        related_name="channels",
+        null=True,
+        blank=True,
     )
 
-    channel_type = models.CharField(
-        max_length=20,
-        choices=CHANNEL_TYPES,
-        default='PUBLIC'
-    )
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="created_channels")
+
+    channel_type = models.CharField(max_length=20, choices=CHANNEL_TYPES, default="PUBLIC")
 
     # For DIRECT channels: participants of the DM
     members = models.ManyToManyField(
         User,
-        related_name='direct_channels',
+        related_name="direct_channels",
         blank=True,
     )
 
@@ -140,4 +178,3 @@ class Channel(models.Model):
 
     def __str__(self):
         return self.name
-        

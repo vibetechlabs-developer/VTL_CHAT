@@ -1,10 +1,12 @@
-import { useMemo, useRef, useState } from "react";
-import { Mail, Calendar, Shield, Edit3, Camera, Loader2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Mail, AtSign, Shield, Edit3, Camera, Loader2 } from "lucide-react";
 import AppLayout from "../../components/vtl/AppLayout";
 import GlassCard from "../../components/vtl/GlassCard";
 import Modal from "../../components/vtl/Modal";
 import { useWorkspace } from "../../context/WorkspaceContext";
+import * as workspaceApi from "../../services/workspaceApi";
 import { extractErrorMessage, getAvatarColor, getInitials } from "../../utils/helpers";
+import logger from "../../utils/logger";
 import "./Profile.scss";
 
 export default function Profile() {
@@ -15,13 +17,19 @@ export default function Profile() {
     initials,
     handleLogout,
     channels,
-    messages,
     meetings,
-    teamMembers,
     unreadNotificationCount,
     updateProfile,
     updateProfileAvatar,
   } = useWorkspace();
+
+  const [stats, setStats] = useState(null);
+
+  useEffect(() => {
+    workspaceApi.getProfileStats()
+      .then((res) => setStats(res.data))
+      .catch(() => setStats(null));
+  }, [profile?.id]);
 
   const [showEdit, setShowEdit] = useState(false);
   const [form, setForm] = useState({ username: "", email: "", password: "" });
@@ -30,15 +38,10 @@ export default function Profile() {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const avatarInputRef = useRef(null);
 
-  const myMessages = useMemo(
-    () => messages.filter((m) => m.sender === profile?.id).length,
-    [messages, profile]
-  );
-
-  const myTeams = useMemo(
-    () => teamMembers.filter((m) => m.user === profile?.id).length,
-    [teamMembers, profile]
-  );
+  const myMessages = stats?.messages_sent ?? 0;
+  const myTeams = stats?.teams_count ?? 0;
+  const myChannels = stats?.channels_count ?? channels.length;
+  const myMeetings = stats?.meetings_hosted ?? meetings.length;
 
   const openEdit = () => {
     setForm({
@@ -73,7 +76,7 @@ export default function Profile() {
     try {
       await updateProfileAvatar(file);
     } catch (err) {
-      console.error("Avatar upload failed:", extractErrorMessage(err));
+      logger.error("Avatar upload failed:", extractErrorMessage(err));
     } finally {
       setAvatarUploading(false);
       if (avatarInputRef.current) avatarInputRef.current.value = "";
@@ -158,7 +161,7 @@ export default function Profile() {
               </div>
             </div>
             <div className="profile-detail__row">
-              <Calendar size={16} />
+                <AtSign size={16} />
               <div>
                 <span>Username</span>
                 <p>{profile?.username || "—"}</p>
@@ -171,8 +174,8 @@ export default function Profile() {
             <div className="profile-stats__grid">
               <div><strong>{myMessages}</strong><span>Messages sent</span></div>
               <div><strong>{myTeams}</strong><span>Teams joined</span></div>
-              <div><strong>{channels.length}</strong><span>Channels</span></div>
-              <div><strong>{meetings.length}</strong><span>Meetings</span></div>
+              <div><strong>{myChannels}</strong><span>Channels</span></div>
+              <div><strong>{myMeetings}</strong><span>Meetings hosted</span></div>
             </div>
           </GlassCard>
         </div>

@@ -246,7 +246,7 @@ export default function Dashboard() {
                     <span className="dash-meetings__host">
                       {usersMap[m.host]?.username || "Host"}
                     </span>
-                    <Link to="/meetings" className="vtl-btn vtl-btn--sm">Join</Link>
+                    <Link to={`/meetings/${m.id}/room`} className="vtl-btn vtl-btn--sm">Join</Link>
                   </div>
                 </div>
               ))}

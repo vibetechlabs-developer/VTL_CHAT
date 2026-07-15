@@ -1,103 +1,32 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import * as workspaceApi from "../services/workspaceApi";
-import { extractErrorMessage } from "../utils/helpers";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef } from "react";
 import { useSettings } from "./SettingsContext";
 import { useGlobalSocket } from "../hooks/useGlobalSocket";
+import { AuthProvider, useAuth } from "./AuthContext";
+import { WorkspaceDataProvider, useWorkspaceData } from "./WorkspaceDataContext";
+import { ChatProvider, useChat } from "./ChatContext";
 
 const WorkspaceContext = createContext(null);
 
-export function WorkspaceProvider({ children }) {
-  const navigate = useNavigate();
-  const [profile, setProfile] = useState(null);
-  const [users, setUsers] = useState([]);
-  const [teams, setTeams] = useState([]);
-  const [organizations, setOrganizations] = useState([]);
-  const [teamMembers, setTeamMembers] = useState([]);
-  const [channels, setChannels] = useState([]);
-  const [meetings, setMeetings] = useState([]);
-  const [notifications, setNotifications] = useState([]);
-  const [messages, setMessages] = useState([]);
-  const [reactions, setReactions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  const usersMap = useMemo(() => {
-    const map = { ...Object.fromEntries(users.map((u) => [u.id, u])) };
-    if (profile) map[profile.id] = profile;
-    return map;
-  }, [users, profile]);
-
-  const refreshAll = useCallback(async () => {
-    const results = await Promise.allSettled([
-      workspaceApi.getProfile(),
-      workspaceApi.getUsers(),
-      workspaceApi.getTeams(),
-      workspaceApi.getOrganizations(),
-      workspaceApi.getTeamMembers(),
-      workspaceApi.getChannels(),
-      workspaceApi.getMeetings(),
-      workspaceApi.getNotifications(),
-      workspaceApi.getMessages(),
-      workspaceApi.getReactions(),
-    ]);
-
-    const get = (i) => (results[i].status === "fulfilled" ? results[i].value.data : null);
-
-    const profileData = get(0);
-    if (profileData) setProfile(profileData);
-    if (get(1)) setUsers(get(1));
-    if (get(2)) setTeams(get(2));
-    if (get(3)) setOrganizations(get(3));
-    if (get(4)) setTeamMembers(get(4));
-    if (get(5)) setChannels(get(5));
-    if (get(6)) setMeetings(get(6));
-    if (get(7)) setNotifications(get(7));
-    const rawMessages = get(8);
-    if (rawMessages) {
-      const messagesArray = Array.isArray(rawMessages) ? rawMessages : (rawMessages.results || []);
-      setMessages(messagesArray);
-    }
-    if (get(9)) setReactions(get(9));
-    if (!profileData && results[0].status === "rejected") {
-      throw results[0].reason;
-    }
-  }, []);
-
-  useEffect(() => {
-    const init = async () => {
-      try {
-        await refreshAll();
-      } catch (err) {
-        if (err?.response?.status === 401) {
-          localStorage.removeItem("access");
-          localStorage.removeItem("refresh");
-          navigate("/");
-          return;
-        }
-        setError(extractErrorMessage(err));
-      } finally {
-        setLoading(false);
-      }
-    };
-    init();
-    // Polling is now a fallback – real-time updates come via global WebSocket
-    const interval = setInterval(refreshAll, 120000);
-    return () => clearInterval(interval);
-  }, [navigate, refreshAll]);
-
+function WorkspaceComposer({ children }) {
+  const { profile, loading: authLoading, error: authError, initials, handleLogout, updateProfile, updateProfileAvatar } = useAuth();
+  const workspace = useWorkspaceData();
+  const chat = useChat();
   const { settings } = useSettings();
 
-  // --- Global WebSocket for real-time notifications ---
+  const usersMap = useMemo(() => {
+    const map = { ...Object.fromEntries(workspace.users.map((u) => [u.id, u])) };
+    if (profile) map[profile.id] = profile;
+    return map;
+  }, [workspace.users, profile]);
+
   const handleGlobalEvent = useCallback((event) => {
     if (event?.type === "notification" && event.payload) {
       const n = event.payload;
-      setNotifications((prev) => {
+      workspace.setNotifications((prev) => {
         if (prev.some((x) => x.id === n.id)) return prev;
         return [n, ...prev];
       });
-      // Show desktop notification
       if (settings.desktopNotifications && "Notification" in window && Notification.permission === "granted") {
         new Notification(n.title || "New Notification", {
           body: n.message || "",
@@ -105,30 +34,28 @@ export function WorkspaceProvider({ children }) {
         });
       }
     }
-  }, [settings.desktopNotifications]);
+  }, [workspace, settings.desktopNotifications]);
 
   useGlobalSocket(handleGlobalEvent);
+
   const prevNotificationsRef = useRef([]);
   const isInitialLoadRef = useRef(true);
 
   useEffect(() => {
-    // On initial load, populate previous ref without showing alerts
     if (isInitialLoadRef.current) {
-      if (notifications.length > 0) {
-        prevNotificationsRef.current = notifications;
+      if (workspace.notifications.length > 0) {
+        prevNotificationsRef.current = workspace.notifications;
         isInitialLoadRef.current = false;
       }
       return;
     }
 
-    // Request permission if desktop notifications are enabled and not yet granted
     if (settings.desktopNotifications && "Notification" in window && Notification.permission === "default") {
       Notification.requestPermission();
     }
 
-    // Determine genuinely new notifications since last poll
     const prevIds = new Set(prevNotificationsRef.current.map((p) => p.id));
-    const newNotifs = notifications.filter((n) => !prevIds.has(n.id));
+    const newNotifs = workspace.notifications.filter((n) => !prevIds.has(n.id));
 
     newNotifs.forEach((n) => {
       if (settings.desktopNotifications && "Notification" in window && Notification.permission === "granted") {
@@ -139,205 +66,77 @@ export function WorkspaceProvider({ children }) {
       }
     });
 
-    prevNotificationsRef.current = notifications;
-  }, [notifications, settings.desktopNotifications]);
+    prevNotificationsRef.current = workspace.notifications;
+  }, [workspace.notifications, settings.desktopNotifications]);
 
-  const handleLogout = async () => {
-    try {
-      const refresh = localStorage.getItem("refresh");
-      if (refresh) await workspaceApi.logoutUser(refresh);
-    } catch (err) {
-      console.error("Logout failed:", err);
-    } finally {
-      localStorage.removeItem("access");
-      localStorage.removeItem("refresh");
-      navigate("/");
-    }
-  };
-
-  const updateProfile = async (data) => {
-    const res = await workspaceApi.updateUser(profile.id, data);
-    setProfile(res.data);
-    return res.data;
-  };
-
-  const updateProfileAvatar = async (file) => {
-    const res = await workspaceApi.updateUserAvatar(profile.id, file);
-    setProfile(res.data);
-    return res.data;
-  };
-
-  const createOrganization = async (data) => {
-    const res = await workspaceApi.createOrganization(data);
-    setOrganizations((prev) => [...prev, res.data]);
-    return res.data;
-  };
-
-  const createTeam = async (data) => {
-    const res = await workspaceApi.createTeam(data);
-    await refreshAll();
-    return res.data;
-  };
-
-  const createChannel = async (data) => {
-    const res = await workspaceApi.createChannel(data);
-    await refreshAll();
-    return res.data;
-  };
-
-  const createDirectMessageChannel = async (userId) => {
-    const res = await workspaceApi.createDirectChannel({ user_id: userId });
-    await refreshAll();
-    return res.data;
-  };
-
-  const createMeeting = async (data) => {
-    const res = await workspaceApi.createMeeting(data);
-    setMeetings((prev) => [...prev, res.data]);
-    return res.data;
-  };
-
-  const fetchChannelMessages = async (channelId) => {
-    const res = await workspaceApi.getMessages(channelId);
-    return res.data;
-  };
-
-  const addTeamMember = async (data) => {
-    const res = await workspaceApi.addTeamMember(data);
-    await refreshAll();
-    return res.data;
-  };
-
-  const postMessage = async (channelId, content) => {
-    const res = await workspaceApi.sendMessage({ channel: channelId, content });
-    setMessages((prev) => [...prev, res.data]);
-    return res.data;
-  };
-
-  const editMessage = async (messageId, content) => {
-    const res = await workspaceApi.editMessage(messageId, { content });
-    setMessages((prev) => prev.map((m) => (m.id === messageId ? res.data : m)));
-    return res.data;
-  };
-
-  const deleteMessage = async (messageId) => {
-    await workspaceApi.deleteMessage(messageId);
-    setMessages((prev) => prev.filter((m) => m.id !== messageId));
-  };
-
-  const clearChannelChat = async (channelId) => {
-    await workspaceApi.clearChat(channelId);
-    setMessages((prev) => prev.filter((m) => m.channel !== channelId));
-  };
-
-  const markNotificationRead = async (id) => {
-    const res = await workspaceApi.updateNotification(id, { is_read: true });
-    setNotifications((prev) => prev.map((n) => (n.id === id ? res.data : n)));
-  };
-
-  const markAllNotificationsRead = async () => {
-    const unread = notifications.filter((n) => !n.is_read);
-    await Promise.all(unread.map((n) => workspaceApi.updateNotification(n.id, { is_read: true })));
-    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-  };
-
-  const joinMeeting = async (meetingId) => {
-    await workspaceApi.joinMeeting(meetingId);
-    await refreshAll();
-  };
-
-  const toggleReaction = async (messageId, reactionType) => {
-    const existing = reactions.find(
-      (r) =>
-        Number(r.message) === Number(messageId) &&
-        Number(r.user) === Number(profile?.id)
-    );
-
-    if (existing?.reaction_type === reactionType) {
-      await workspaceApi.removeReaction(existing.id);
-      setReactions((prev) => prev.filter((r) => r.id !== existing.id));
-      return null;
-    }
-
-    if (existing) {
-      const res = await workspaceApi.updateReaction(existing.id, {
-        reaction_type: reactionType,
-      });
-      setReactions((prev) => prev.map((r) => (r.id === existing.id ? res.data : r)));
-      return res.data;
-    }
-
-    const res = await workspaceApi.addReaction({
-      message: messageId,
-      reaction_type: reactionType,
-    });
-    setReactions((prev) => [...prev, res.data]);
-    return res.data;
-  };
-
-  const uploadMessageAttachment = async (messageId, file) => {
-    const res = await workspaceApi.uploadAttachment(messageId, file);
-    return res.data;
-  };
-
-  const pinMessage = async (messageId) => {
-    const res = await workspaceApi.pinMessage(messageId);
-    return res.data;
-  };
-
-  const getTeamMemberCount = (teamId) =>
-    teamMembers.filter((m) => Number(m.team) === Number(teamId)).length;
-
-  const getChannelCountForTeam = (teamId) =>
-    channels.filter((c) => c.team === teamId).length;
-
-  const unreadNotificationCount = notifications.filter((n) => !n.is_read).length;
-
-  const initials = profile?.username ? profile.username.substring(0, 2).toUpperCase() : "VT";
+  const toggleReaction = (messageId, reactionType) =>
+    chat.toggleReaction(messageId, reactionType, profile?.id);
 
   const value = {
     profile,
-    users,
+    users: workspace.users,
     usersMap,
-    teams,
-    organizations,
-    teamMembers,
-    channels,
-    meetings,
-    notifications,
-    messages,
-    reactions,
-    loading,
-    error,
+    teams: workspace.teams,
+    organizations: workspace.organizations,
+    teamMembers: workspace.teamMembers,
+    channels: workspace.channels,
+    meetings: workspace.meetings,
+    notifications: workspace.notifications,
+    messages: chat.messages,
+    reactions: chat.reactions,
+    loading: authLoading || workspace.loading,
+    error: authError || workspace.error,
     initials,
-    unreadNotificationCount,
+    unreadNotificationCount: workspace.unreadNotificationCount,
     handleLogout,
-    refreshAll,
+    refreshAll: workspace.refreshWorkspaceData,
     updateProfile,
-    createOrganization,
-    createTeam,
-    createChannel,
-    createDirectMessageChannel,
-    createMeeting,
-    fetchChannelMessages,
-    postMessage,
-    editMessage,
-    deleteMessage,
-    clearChannelChat,
-    pinMessage,
-    markNotificationRead,
-    markAllNotificationsRead,
-    joinMeeting,
-    getTeamMemberCount,
-    getChannelCountForTeam,
-    addTeamMember,
+    updateProfileAvatar,
+    createOrganization: workspace.createOrganization,
+    createTeam: workspace.createTeam,
+    deleteTeam: workspace.deleteTeam,
+    createChannel: workspace.createChannel,
+    deleteChannel: workspace.deleteChannel,
+    createDirectMessageChannel: workspace.createDirectMessageChannel,
+    createMeeting: workspace.createMeeting,
+    deleteMeeting: workspace.deleteMeeting,
+    fetchChannelMessages: chat.fetchChannelMessages,
+    postMessage: chat.postMessage,
+    editMessage: chat.editMessage,
+    deleteMessage: chat.deleteMessage,
+    clearChannelChat: chat.clearChannelChat,
+    pinMessage: chat.pinMessage,
+    markNotificationRead: workspace.markNotificationRead,
+    markAllNotificationsRead: workspace.markAllNotificationsRead,
+    joinMeeting: workspace.joinMeeting,
+    getTeamMemberCount: workspace.getTeamMemberCount,
+    getChannelCountForTeam: workspace.getChannelCountForTeam,
+    addTeamMember: workspace.addTeamMember,
+    joinTeam: workspace.joinTeam,
+    leaveTeam: workspace.leaveTeam,
+    removeTeamMember: workspace.removeTeamMember,
     toggleReaction,
     addReaction: toggleReaction,
-    uploadMessageAttachment,
-    updateProfileAvatar,
+    uploadMessageAttachment: chat.uploadMessageAttachment,
+    setMessages: chat.setMessages,
+    setReactions: chat.setReactions,
   };
 
-  return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
+  return (
+    <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>
+  );
+}
+
+export function WorkspaceProvider({ children }) {
+  return (
+    <AuthProvider>
+      <WorkspaceDataProvider>
+        <ChatProvider>
+          <WorkspaceComposer>{children}</WorkspaceComposer>
+        </ChatProvider>
+      </WorkspaceDataProvider>
+    </AuthProvider>
+  );
 }
 
 export function useWorkspace() {

@@ -1,9 +1,21 @@
-import { Crown, Shield, Search } from "lucide-react";
+import { Crown, Shield, Search, X, LogOut } from "lucide-react";
 import { getInitials, getAvatarColor } from "../../utils/helpers";
 import { useSettings } from "../../context/SettingsContext";
+import { useConfirm } from "../../context/ConfirmContext";
+import { useToast } from "../../context/ToastContext";
+import { extractErrorMessage } from "../../utils/helpers";
 import "./MemberPanel.scss";
 
-export default function MemberPanel({ members = [], usersMap = {}, profile, teamName, onDMSelect }) {
+export default function MemberPanel({
+  members = [],
+  usersMap = {},
+  profile,
+  teamName,
+  onDMSelect,
+  onLeave,
+  onRemove,
+  isAdmin = false,
+}) {
   const enriched = members.map((m) => ({
     ...m,
     user: usersMap[m.user] || { username: "User", id: m.user },
@@ -24,7 +36,16 @@ export default function MemberPanel({ members = [], usersMap = {}, profile, team
           <div className="member-panel__group">
             <span className="member-panel__group-label">Admins — {admins.length}</span>
             {admins.map((member) => (
-              <MemberRow key={member.id} member={member} profile={profile} badge="crown" onDMSelect={onDMSelect} />
+              <MemberRow
+                key={member.id}
+                member={member}
+                profile={profile}
+                badge="crown"
+                onDMSelect={onDMSelect}
+                onLeave={onLeave}
+                onRemove={onRemove}
+                isAdmin={isAdmin}
+              />
             ))}
           </div>
         )}
@@ -41,6 +62,9 @@ export default function MemberPanel({ members = [], usersMap = {}, profile, team
                 profile={profile}
                 badge={member.role === "ADMIN" ? "shield" : null}
                 onDMSelect={onDMSelect}
+                onLeave={onLeave}
+                onRemove={onRemove}
+                isAdmin={isAdmin}
               />
             ))
           )}
@@ -50,16 +74,56 @@ export default function MemberPanel({ members = [], usersMap = {}, profile, team
   );
 }
 
-function MemberRow({ member, profile, badge, onDMSelect }) {
+function MemberRow({ member, profile, badge, onDMSelect, onLeave, onRemove, isAdmin }) {
   const { settings } = useSettings();
+  const confirm = useConfirm();
+  const toast = useToast();
   const username = member.user?.username || "User";
-  const isSelf = member.user?.id === profile?.id;
+  const isSelf = Number(member.user?.id) === Number(profile?.id);
   const isOnline = !isSelf || settings.showOnlineStatus;
   const avatarUrl = member.user?.avatar_url;
 
+  const handleLeave = async (e) => {
+    e.stopPropagation();
+    const ok = await confirm({
+      title: "Leave Team",
+      message: "Are you sure you want to leave this team? You will lose access to all its channels.",
+      confirmText: "Leave",
+      type: "danger",
+    });
+    if (!ok) return;
+    try {
+      await onLeave(member.user.id);
+    } catch (err) {
+      toast.error(extractErrorMessage(err));
+    }
+  };
+
+  const handleRemove = async (e) => {
+    e.stopPropagation();
+    const ok = await confirm({
+      title: "Remove Member",
+      message: `Remove ${username} from this team?`,
+      confirmText: "Remove",
+      type: "danger",
+    });
+    if (!ok) return;
+    try {
+      await onRemove(member.user.id);
+      toast.success(`${username} removed from team`);
+    } catch (err) {
+      toast.error(extractErrorMessage(err));
+    }
+  };
+
+  const showLeaveBtn = isSelf && onLeave;
+  const showRemoveBtn = !isSelf && isAdmin && onRemove;
+
   return (
-    <button 
+    <div
       className={`member-panel__member ${isSelf ? "member-panel__member--self" : ""}`}
+      role="button"
+      tabIndex={0}
       onClick={() => {
         if (!isSelf && onDMSelect) onDMSelect(member.user.id);
       }}
@@ -78,6 +142,25 @@ function MemberRow({ member, profile, badge, onDMSelect }) {
       </div>
       {badge === "crown" && <Crown size={14} className="member-panel__badge member-panel__badge--gold" />}
       {badge === "shield" && <Shield size={14} className="member-panel__badge member-panel__badge--blue" />}
-    </button>
+
+      {showLeaveBtn && (
+        <button
+          className="member-panel__action-btn member-panel__action-btn--leave"
+          onClick={handleLeave}
+          title="Leave team"
+        >
+          <LogOut size={13} />
+        </button>
+      )}
+      {showRemoveBtn && (
+        <button
+          className="member-panel__action-btn member-panel__action-btn--remove"
+          onClick={handleRemove}
+          title={`Remove ${username}`}
+        >
+          <X size={13} />
+        </button>
+      )}
+    </div>
   );
 }

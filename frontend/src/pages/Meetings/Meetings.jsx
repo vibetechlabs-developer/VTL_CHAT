@@ -1,11 +1,13 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Video, Calendar, Clock, Loader2 } from "lucide-react";
+import { Plus, Video, Calendar, Clock, Loader2, Trash2 } from "lucide-react";
 import AppLayout from "../../components/vtl/AppLayout";
 import GlassCard from "../../components/vtl/GlassCard";
 import EmptyState from "../../components/vtl/EmptyState";
 import Modal from "../../components/vtl/Modal";
 import { useWorkspace } from "../../context/WorkspaceContext";
+import { useConfirm } from "../../context/ConfirmContext";
+import { useToast } from "../../context/ToastContext";
 import {
   extractErrorMessage,
   formatMeetingDate,
@@ -26,7 +28,10 @@ export default function Meetings() {
     usersMap,
     unreadNotificationCount,
     createMeeting,
+    deleteMeeting,
   } = useWorkspace();
+  const confirm = useConfirm();
+  const toast = useToast();
 
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
@@ -52,6 +57,21 @@ export default function Meetings() {
   const handleCreate = async (e) => {
     e.preventDefault();
     setFormError("");
+    
+    const now = new Date();
+    const start = new Date(form.start_time);
+    const end = new Date(form.end_time);
+
+    if (start < now) {
+      setFormError("Start time cannot be in the past.");
+      return;
+    }
+
+    if (end <= start) {
+      setFormError("End time must be after the start time.");
+      return;
+    }
+
     setSubmitting(true);
     try {
       if (!channels.length) {
@@ -62,8 +82,8 @@ export default function Meetings() {
         title: form.title,
         description: form.description,
         channel: Number(form.channel || channels[0].id),
-        start_time: new Date(form.start_time).toISOString(),
-        end_time: new Date(form.end_time).toISOString(),
+        start_time: start.toISOString(),
+        end_time: end.toISOString(),
       });
       setShowModal(false);
       setForm({ title: "", description: "", channel: "", start_time: "", end_time: "" });
@@ -79,13 +99,37 @@ export default function Meetings() {
   };
 
   // Determines if a meeting is upcoming (starts in the future)
-const isUpcoming = (startTime) => new Date(startTime) > new Date();
+  const isUpcoming = (startTime) => new Date(startTime) > new Date();
 
-// Determines if a meeting is currently ongoing (started but not ended)
-const isOngoing = (startTime, endTime) => {
-  const now = new Date();
-  return new Date(startTime) <= now && new Date(endTime) >= now;
-};
+  // Determines if a meeting is currently ongoing (started but not ended)
+  const isOngoing = (startTime, endTime) => {
+    const now = new Date();
+    return new Date(startTime) <= now && new Date(endTime) >= now;
+  };
+
+  // Determines if a meeting starts within 5 minutes
+  const startsSoon = (startTime) => {
+    const now = new Date();
+    const start = new Date(startTime);
+    const diff = start - now;
+    return diff > 0 && diff <= 5 * 60 * 1000;
+  };
+
+  const handleDeleteMeeting = async (meeting) => {
+    const ok = await confirm({
+      title: "Cancel Meeting",
+      message: `Remove "${meeting.title}" from the schedule?`,
+      confirmText: "Delete",
+      type: "danger",
+    });
+    if (!ok) return;
+    try {
+      await deleteMeeting(meeting.id);
+      toast.success("Meeting deleted");
+    } catch (err) {
+      toast.error(extractErrorMessage(err));
+    }
+  };
 
   return (
     <AppLayout
@@ -137,7 +181,8 @@ const isOngoing = (startTime, endTime) => {
                 Hosted by {usersMap[m.host]?.username || "Unknown"}
               </p>
               {m.description && <p className="meeting-card__desc">{m.description}</p>}
-              {isOngoing(m.start_time, m.end_time) && (
+              <div className="meeting-card__footer">
+              {(isOngoing(m.start_time, m.end_time) || startsSoon(m.start_time)) && (
                 <button
                   className="vtl-btn vtl-btn--primary vtl-btn--sm"
                   onClick={() => handleJoin(m.id)}
@@ -148,9 +193,18 @@ const isOngoing = (startTime, endTime) => {
                   ) : (
                     <Video size={14} />
                   )}
-                  Join
+                  {isOngoing(m.start_time, m.end_time) ? "Join" : "Join Soon"}
                 </button>
               )}
+              <button
+                type="button"
+                className="vtl-btn vtl-btn--ghost vtl-btn--sm"
+                onClick={() => handleDeleteMeeting(m)}
+                title="Delete meeting"
+              >
+                <Trash2 size={14} />
+              </button>
+              </div>
             </GlassCard>
           ))}
         </div>

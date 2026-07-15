@@ -55,3 +55,12 @@ $z-sidebar: 200;
 $z-topbar: 150;
 $z-modal: 500;
 $z-toast: 1000;
+
+// ── Responsive Breakpoints ────────────────────────────────────────────────────
+// Mobile-first: use max-width for these breakpoints
+$bp-mobile:  767px;   // < 768px  → mobile single-panel
+$bp-tablet: 1023px;   // 768-1023px → tablet two-panel
+// $bp-desktop: 1024px+ → full multi-panel (default, no media query needed)
+
+// Mobile bottom navigation bar height
+$mobile-nav-height: 60px;
