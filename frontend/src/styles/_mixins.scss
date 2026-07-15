@@ -89,3 +89,35 @@
     outline-offset: 2px;
   }
 }
+
+// ── Responsive Breakpoint Mixins ─────────────────────────────────────────────
+@mixin mobile {
+  @media (max-width: #{$bp-mobile}) {
+    @content;
+  }
+}
+
+@mixin tablet {
+  @media (min-width: #{$bp-mobile + 1px}) and (max-width: #{$bp-tablet}) {
+    @content;
+  }
+}
+
+@mixin tablet-down {
+  @media (max-width: #{$bp-tablet}) {
+    @content;
+  }
+}
+
+@mixin desktop {
+  @media (min-width: #{$bp-tablet + 1px}) {
+    @content;
+  }
+}
+
+// ── Touch Target (Apple HIG / Google: min 44x44px) ───────────────────────────
+@mixin touch-target {
+  min-width: 44px;
+  min-height: 44px;
+  @include flex-center;
+}

@@ -1,12 +1,14 @@
 import { useMemo, useState } from "react";
-import { Hash, Lock, Plus } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Hash, Lock, Plus, Trash2 } from "lucide-react";
 import AppLayout from "../../components/vtl/AppLayout";
 import GlassCard from "../../components/vtl/GlassCard";
 import EmptyState from "../../components/vtl/EmptyState";
 import Modal from "../../components/vtl/Modal";
 import { useWorkspace } from "../../context/WorkspaceContext";
-import { extractErrorMessage } from "../../utils/helpers";
-import "./Channels.scss";
+import { useConfirm } from "../../context/ConfirmContext";
+import { useToast } from "../../context/ToastContext";
+import { extractErrorMessage } from "../../utils/helpers";import "./Channels.scss";
 
 export default function Channels() {
   const {
@@ -20,7 +22,10 @@ export default function Channels() {
     teamMembers,
     unreadNotificationCount,
     createChannel,
+    deleteChannel,
   } = useWorkspace();
+  const confirm = useConfirm();
+  const toast = useToast();
 
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
@@ -64,6 +69,24 @@ export default function Channels() {
     }
   };
 
+  const handleDelete = async (e, ch) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const ok = await confirm({
+      title: "Delete Channel",
+      message: `Delete #${ch.name}? This cannot be undone.`,
+      confirmText: "Delete",
+      type: "danger",
+    });
+    if (!ok) return;
+    try {
+      await deleteChannel(ch.id);
+      toast.success("Channel deleted");
+    } catch (err) {
+      toast.error(extractErrorMessage(err));
+    }
+  };
+
   return (
     <AppLayout
       title="Channels"
@@ -99,20 +122,31 @@ export default function Channels() {
         <GlassCard padding={false} className="channels-page__list">
           {filtered.map((ch) => {
             const team = teams.find((t) => t.id === ch.team);
+            const url = `/teams/${team?.id || ''}/channels/${ch.id}`;
             return (
-              <div key={ch.id} className="channel-row">
-                <div className="channel-row__icon">
-                  {ch.channel_type === "PRIVATE" ? <Lock size={18} /> : <Hash size={18} />}
+              <Link key={ch.id} to={url} className="channel-row-link">
+                <div className="channel-row">
+                  <div className="channel-row__icon">
+                    {ch.channel_type === "PRIVATE" ? <Lock size={18} /> : <Hash size={18} />}
+                  </div>
+                  <div className="channel-row__info">
+                    <div className="channel-row__name">{ch.name}</div>
+                    <p>{ch.description || team?.name || "No description"}</p>
+                  </div>
+                  <span className="channel-row__members">
+                    {memberCounts[ch.team] || 0} members
+                  </span>
+                  <span className="channel-row__type">{ch.channel_type}</span>
+                  <button
+                    type="button"
+                    className="channel-row__delete"
+                    title="Delete channel"
+                    onClick={(e) => handleDelete(e, ch)}
+                  >
+                    <Trash2 size={16} />
+                  </button>
                 </div>
-                <div className="channel-row__info">
-                  <div className="channel-row__name">{ch.name}</div>
-                  <p>{ch.description || team?.name || "No description"}</p>
-                </div>
-                <span className="channel-row__members">
-                  {memberCounts[ch.team] || 0} members
-                </span>
-                <span className="channel-row__type">{ch.channel_type}</span>
-              </div>
+              </Link>
             );
           })}
         </GlassCard>

@@ -5,25 +5,14 @@ from teams.models import Channel
 
 class Message(models.Model):
 
-    sender = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='messages_sent'
-    )
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name="messages_sent")
 
-    channel = models.ForeignKey(
-        Channel,
-        on_delete=models.CASCADE,
-        related_name='messages'
-    )
+    channel = models.ForeignKey(Channel, on_delete=models.CASCADE, related_name="messages")
     content = models.TextField(blank=True, default="")
+    client_uuid = models.CharField(max_length=36, blank=True, null=True)
 
     parent = models.ForeignKey(
-        'self',
-        null=True,
-        blank=True,
-        on_delete=models.CASCADE,
-        related_name='replies'
+        "self", null=True, blank=True, on_delete=models.CASCADE, related_name="replies"
     )
 
     is_pinned = models.BooleanField(default=False)
@@ -36,7 +25,7 @@ class Message(models.Model):
 
     class Meta:
         indexes = [
-            models.Index(fields=['channel', 'created_at']),
+            models.Index(fields=["channel", "created_at"]),
         ]
 
     def __str__(self):
@@ -45,63 +34,39 @@ class Message(models.Model):
 
 class Attachment(models.Model):
 
-    message = models.ForeignKey(
-        Message,
-        on_delete=models.CASCADE,
-        related_name='attachments'
-    )
+    message = models.ForeignKey(Message, on_delete=models.CASCADE, related_name="attachments")
 
+    file = models.FileField(upload_to="attachments/")
 
-
-    file = models.FileField(
-        upload_to='attachments/'
-    )
-
-    uploaded_at = models.DateTimeField(
-        auto_now_add=True
-    )
+    uploaded_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.file.name
 
 
-
 class Reaction(models.Model):
 
     REACTION_CHOICES = (
-        ('LIKE', '👍'),
-        ('LOVE', '❤️'),
-        ('LAUGH', '😂'),
-        ('CELEBRATE', '🎉'),
+        ("LIKE", "👍"),
+        ("LOVE", "❤️"),
+        ("LAUGH", "😂"),
+        ("CELEBRATE", "🎉"),
     )
 
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=["user", "message"],
-                name="unique_reaction_per_user_message"
+                fields=["user", "message"], name="unique_reaction_per_user_message"
             )
         ]
 
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE
-    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
 
-    message = models.ForeignKey(
-        Message,
-        on_delete=models.CASCADE,
-        related_name='reactions'
-    )
+    message = models.ForeignKey(Message, on_delete=models.CASCADE, related_name="reactions")
 
-    reaction_type = models.CharField(
-        max_length=20,
-        choices=REACTION_CHOICES
-    )
+    reaction_type = models.CharField(max_length=20, choices=REACTION_CHOICES)
 
-    created_at = models.DateTimeField(
-        auto_now_add=True
-    )
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.user.username} - {self.reaction_type}"
@@ -109,32 +74,23 @@ class Reaction(models.Model):
 
 class ChannelReadReceipt(models.Model):
 
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE
-    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
 
-    channel = models.ForeignKey(
-        Channel,
-        on_delete=models.CASCADE,
-        related_name='read_receipts'
-    )
+    channel = models.ForeignKey(Channel, on_delete=models.CASCADE, related_name="read_receipts")
 
-    last_read_message = models.ForeignKey(
-        Message,
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL
-    )
+    last_read_message = models.ForeignKey(Message, null=True, blank=True, on_delete=models.SET_NULL)
 
     read_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=["user", "channel"],
-                name="unique_read_receipt_per_user_channel"
+                fields=["user", "channel"], name="unique_read_receipt_per_user_channel"
             )
+        ]
+        indexes = [
+            models.Index(fields=["user", "channel"]),
+            models.Index(fields=["last_read_message"]),
         ]
 
     def __str__(self):

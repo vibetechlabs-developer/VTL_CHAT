@@ -2,32 +2,35 @@ from urllib.parse import parse_qs
 
 from channels.db import database_sync_to_async
 from django.contrib.auth.models import AnonymousUser
-from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
-from rest_framework_simplejwt.tokens import AccessToken
-
-from users.models import User
+from users.models import WebSocketTicket
 
 
 @database_sync_to_async
-def get_user_from_token(token):
+def get_user_from_ticket(ticket_str):
     try:
-        validated = AccessToken(token)
-        return User.objects.get(id=validated["user_id"])
-    except (InvalidToken, TokenError, User.DoesNotExist, KeyError):
-        return AnonymousUser()
+        t = WebSocketTicket.objects.select_related("user").get(ticket=ticket_str)
+        if t.is_valid():
+            user = t.user
+            t.delete()  # consume ticket immediately
+            return user
+        else:
+            t.delete()
+    except WebSocketTicket.DoesNotExist:
+        pass
+    return AnonymousUser()
 
 
-class JwtAuthMiddleware:
+class TicketAuthMiddleware:
     def __init__(self, inner):
         self.inner = inner
 
     async def __call__(self, scope, receive, send):
         query_string = scope.get("query_string", b"").decode()
         params = parse_qs(query_string)
-        token = params.get("token", [None])[0]
-        scope["user"] = await get_user_from_token(token) if token else AnonymousUser()
+        ticket = params.get("ticket", [None])[0]
+        scope["user"] = await get_user_from_ticket(ticket) if ticket else AnonymousUser()
         return await self.inner(scope, receive, send)
 
 
 def JwtAuthMiddlewareStack(inner):
-    return JwtAuthMiddleware(inner)
+    return TicketAuthMiddleware(inner)

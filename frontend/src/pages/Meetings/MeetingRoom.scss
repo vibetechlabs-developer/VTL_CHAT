@@ -592,3 +592,80 @@ $teams-border: rgba(255, 255, 255, 0.06);
   white-space: nowrap;
   transition: color 0.15s ease;
 }
+
+// Device selector popup styles
+.ctrl-device-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.device-menu {
+  position: absolute;
+  bottom: 80px;
+  right: 0;
+  width: 320px;
+  background: $gm-surface;
+  border: 1px solid $gm-border;
+  border-radius: 8px;
+  padding: 1.25rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  z-index: 100;
+  text-align: left;
+  animation: fadeIn 0.15s ease;
+
+  &__close {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    background: none;
+    border: none;
+    color: $gm-text-dim;
+    font-size: 1rem;
+    cursor: pointer;
+    &:hover {
+      color: $gm-text;
+    }
+  }
+
+  &__section {
+    margin-bottom: 1rem;
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  &__label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: $gm-text;
+    margin-bottom: 0.5rem;
+  }
+
+  &__select {
+    width: 100%;
+    background: $gm-surface2;
+    color: $gm-text;
+    border: 1px solid $gm-border;
+    border-radius: 4px;
+    padding: 0.5rem;
+    font-size: 0.85rem;
+    outline: none;
+    cursor: pointer;
+
+    option {
+      background: $gm-surface;
+      color: $gm-text;
+    }
+  }
+
+  &__empty {
+    font-size: 0.85rem;
+    color: $gm-text-dim;
+    margin: 0;
+    text-align: center;
+  }
+}
+

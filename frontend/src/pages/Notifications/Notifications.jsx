@@ -4,6 +4,7 @@ import GlassCard from "../../components/vtl/GlassCard";
 import EmptyState from "../../components/vtl/EmptyState";
 import { useWorkspace } from "../../context/WorkspaceContext";
 import { formatRelativeTime, NOTIFICATION_ICONS } from "../../utils/helpers";
+import DOMPurify from "dompurify";
 import "./Notifications.scss";
 
 const ICON_MAP = {
@@ -78,7 +79,7 @@ export default function Notifications() {
                     <Icon size={18} />
                   </div>
                   <div className="notif-row__body">
-                    <p><strong>{n.title}</strong> — {n.message}</p>
+                    <p><strong>{n.title}</strong> — <span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(n.message) }} /></p>
                     <span>{formatRelativeTime(n.created_at)}</span>
                   </div>
                   {!n.is_read && <span className="notif-row__dot" />}

@@ -10,7 +10,10 @@ import MeetingRoom from "../pages/Meetings/MeetingRoom";
 import Notifications from "../pages/Notifications/Notifications";
 import Profile from "../pages/Profile/Profile";
 import Settings from "../pages/Settings/Settings";
+import Teams from "../pages/Teams/Teams";
+import Channels from "../pages/Channels/Channels";
 import ProtectedRoute from "./ProtectedRoute";
+import NotFound from "../pages/NotFound/NotFound";
 
 function AppRoutes() {
   return (
@@ -23,7 +26,8 @@ function AppRoutes() {
         
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/teams" element={<Chat />} />
+          <Route path="/teams" element={<Teams />} />
+          <Route path="/channels" element={<Channels />} />
           <Route path="/teams/:teamId/channels/:channelId" element={<Chat />} />
           <Route path="/chat" element={<Chat />} />
           <Route path="/chat/dm/:channelId" element={<Chat />} />
@@ -33,6 +37,8 @@ function AppRoutes() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/settings" element={<Settings />} />
         </Route>
+
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   );

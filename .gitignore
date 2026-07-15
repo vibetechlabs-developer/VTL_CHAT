@@ -6,7 +6,8 @@ db.sqlite3
 
 # Django env
 .env
-
+.env.*
+!.env.example
 # Node
 node_modules/
 dist/

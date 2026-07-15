@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Message, Attachment, Reaction
+from .models import Message, Attachment, Reaction, ChannelReadReceipt
 
 
 class AttachmentAdmin(admin.ModelAdmin):
@@ -12,6 +12,8 @@ class AttachmentAdmin(admin.ModelAdmin):
                     storage.delete(path)
         super().delete_queryset(request, queryset)
 
+
 admin.site.register(Message)
 admin.site.register(Attachment, AttachmentAdmin)
 admin.site.register(Reaction)
+admin.site.register(ChannelReadReceipt)

@@ -1,19 +1,13 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-
-const getWsBaseUrl = () => {
-  const configured = import.meta.env.VITE_WS_URL;
-  if (configured) return configured.replace(/\/$/, "");
-
-  const apiUrl = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api";
-  const origin = apiUrl.replace(/\/api\/?$/, "");
-  return origin.replace(/^http/, "ws");
-};
+import { fetchWsTicket, getWsBaseUrl } from "../services/wsTicket";
+import { getAccessToken, onAccessTokenChange } from "../services/api";
 
 export function useChatSocket(channelId, onEvent, onReconnect) {
   const onEventRef = useRef(onEvent);
   const onReconnectRef = useRef(onReconnect);
   const socketRef = useRef(null);
   const [connectionStatus, setConnectionStatus] = useState("disconnected");
+  const [authVersion, setAuthVersion] = useState(0);
 
   useEffect(() => {
     onEventRef.current = onEvent;
@@ -22,6 +16,8 @@ export function useChatSocket(channelId, onEvent, onReconnect) {
   useEffect(() => {
     onReconnectRef.current = onReconnect;
   }, [onReconnect]);
+
+  useEffect(() => onAccessTokenChange(() => setAuthVersion((v) => v + 1)), []);
 
   useEffect(() => {
     if (!channelId) {
@@ -34,55 +30,65 @@ export function useChatSocket(channelId, onEvent, onReconnect) {
     let retryCount = 0;
     let isCleanUp = false;
 
-    const connect = () => {
+    const connect = async () => {
       if (isCleanUp) return;
 
-      const token = localStorage.getItem("access");
-      if (!token) {
+      if (!getAccessToken()) {
         setConnectionStatus("disconnected");
         return;
       }
 
       setConnectionStatus(retryCount > 0 ? "reconnecting" : "connecting");
 
-      const wsUrl = `${getWsBaseUrl()}/ws/chat/${channelId}/?token=${encodeURIComponent(token)}`;
-      socket = new WebSocket(wsUrl);
-      socketRef.current = socket;
+      try {
+        const ticket = await fetchWsTicket();
+        if (isCleanUp) return;
 
-      socket.onopen = () => {
-        if (isCleanUp) {
+        const wsUrl = `${getWsBaseUrl()}/ws/chat/${channelId}/?ticket=${encodeURIComponent(ticket)}`;
+        socket = new WebSocket(wsUrl);
+        socketRef.current = socket;
+
+        socket.onopen = () => {
+          if (isCleanUp) {
+            socket.close();
+            return;
+          }
+          setConnectionStatus("connected");
+          if (retryCount > 0) {
+            onReconnectRef.current?.();
+          }
+          retryCount = 0;
+        };
+
+        socket.onmessage = (event) => {
+          try {
+            const payload = JSON.parse(event.data);
+            onEventRef.current?.(payload);
+          } catch {
+            // ignore malformed payloads
+          }
+        };
+
+        socket.onclose = (event) => {
+          if (isCleanUp) return;
+          const closeCode = event ? event.code : null;
+          if (closeCode === 4001 || closeCode === 4003 || closeCode === 4004) {
+            setConnectionStatus("disconnected");
+            window.location.href = "/";
+            return;
+          }
+          socketRef.current = null;
+          setConnectionStatus("disconnected");
+          scheduleReconnect();
+        };
+
+        socket.onerror = () => {
+          if (isCleanUp) return;
           socket.close();
-          return;
-        }
-        setConnectionStatus("connected");
-        if (retryCount > 0) {
-          onReconnectRef.current?.();
-        }
-        retryCount = 0;
-      };
-
-      socket.onmessage = (event) => {
-        try {
-          const payload = JSON.parse(event.data);
-          onEventRef.current?.(payload);
-        } catch {
-          // ignore malformed payloads
-        }
-      };
-
-      socket.onclose = () => {
-        if (isCleanUp) return;
-        console.warn('WebSocket closed, attempting reconnect');
-        socketRef.current = null;
-        setConnectionStatus("disconnected");
-        scheduleReconnect();
-      };
-
-      socket.onerror = (event) => {
-        if (isCleanUp) return;
-        console.error('WebSocket error, closing socket', event);
-        socket.close();
-      };
+        };
+      } catch {
+        if (!isCleanUp) scheduleReconnect();
+      }
     };
 
     const scheduleReconnect = () => {
@@ -97,19 +103,11 @@ export function useChatSocket(channelId, onEvent, onReconnect) {
     return () => {
       isCleanUp = true;
       socketRef.current = null;
-      if (socket) {
-        socket.close();
-      }
-      if (reconnectTimeoutId) {
-        clearTimeout(reconnectTimeoutId);
-      }
+      if (socket) socket.close();
+      if (reconnectTimeoutId) clearTimeout(reconnectTimeoutId);
     };
-  }, [channelId]);
+  }, [channelId, authVersion]);
 
-  /**
-   * Send a raw JSON message over the WebSocket.
-   * @param {object} data – plain JS object to send
-   */
   const sendSocketMessage = useCallback((data) => {
     const socket = socketRef.current;
     if (socket && socket.readyState === WebSocket.OPEN) {

@@ -1,6 +1,7 @@
 import { ChevronDown, Plus, Hash, Lock, Loader2 } from "lucide-react";
 import { getInitials, getAvatarColor } from "../../utils/helpers";
 import { useSettings } from "../../context/SettingsContext";
+import Skeleton from "../vtl/Skeleton";
 import "./ChannelSidebar.scss";
 
 export default function ChannelSidebar({
@@ -55,9 +56,13 @@ export default function ChannelSidebar({
         </button>
 
         {loading ? (
-          <div className="channel-sidebar__loading">
-            <Loader2 size={20} className="spin" />
-            <span>Loading channels...</span>
+          <div className="channel-sidebar__loading-skeletons" style={{ display: "flex", flexDirection: "column", gap: "1rem", padding: "1rem" }}>
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                <Skeleton width="16px" height="16px" borderRadius="4px" />
+                <Skeleton width={`${60 + (i % 3) * 10}%`} height="1rem" />
+              </div>
+            ))}
           </div>
         ) : (
           <>

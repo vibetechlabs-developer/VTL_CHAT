@@ -2,7 +2,7 @@ from django.apps import AppConfig
 
 
 class TeamsConfig(AppConfig):
-    name = 'teams'
+    name = "teams"
 
     def ready(self):
         import teams.signals
