@@ -96,7 +96,7 @@
 
 .dash-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
   gap: 1.25rem;
 }
 
@@ -253,7 +253,7 @@
 
 .dash-chats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
   gap: 1rem;
 }
 
@@ -362,5 +362,62 @@
     font-size: 0.75rem;
     background: linear-gradient(135deg, $accent-blue, #1d4ed8);
     color: white;
+  }
+}
+
+// ── Mobile responsiveness ──────────────────────────────────────────
+@media (max-width: 767px) {
+  // Leave room for the fixed bottom nav bar
+  .dash-hero,
+  .dash-stats,
+  .dash-grid,
+  .dash-section,
+  .dash-chats {
+    &:last-child {
+      margin-bottom: calc(#{$mobile-nav-height} + 0.5rem);
+    }
+  }
+
+  .dash-hero {
+    padding: 1.5rem;
+
+    &__content h2 {
+      font-size: clamp(1.1rem, 5vw, 1.6rem);
+    }
+
+    &__actions {
+      flex-direction: column;
+
+      .vtl-btn {
+        width: 100%;
+        justify-content: center;
+        min-height: 44px;
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .dash-hero {
+    padding: 1rem;
+
+    &__content h2 {
+      font-size: clamp(1rem, 4vw, 1.35rem);
+    }
+
+    p {
+      font-size: 0.8rem;
+    }
+  }
+
+  .dash-timeline {
+    &__item {
+      gap: 0.65rem;
+    }
+
+    &__icon {
+      width: 26px;
+      height: 26px;
+    }
   }
 }

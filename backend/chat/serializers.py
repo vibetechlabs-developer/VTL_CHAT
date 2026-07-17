@@ -59,13 +59,19 @@ class AttachmentSerializer(serializers.ModelSerializer):
         return None
 
     def validate_file(self, value):
-        allowed = [".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx"]
+        allowed = [".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx", ".zip"]
         ext = os.path.splitext(value.name)[1].lower()
         if ext not in allowed:
-            raise serializers.ValidationError("File type not allowed")
+            raise serializers.ValidationError(
+                f'File type "{ext or "unknown"}" is not allowed. '
+                f"Allowed: {', '.join(allowed)}"
+            )
 
-        if value.size > 10 * 1024 * 1024:
-            raise serializers.ValidationError("File too large")
+        max_bytes = 10 * 1024 * 1024
+        if value.size > max_bytes:
+            raise serializers.ValidationError(
+                f"File is too large ({value.size / (1024 * 1024):.1f} MB). Maximum size is 10 MB."
+            )
 
         return value
 

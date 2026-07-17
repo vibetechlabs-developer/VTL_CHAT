@@ -133,14 +133,31 @@ export function WorkspaceDataProvider({ children }) {
   };
 
   const markNotificationRead = async (id) => {
-    const res = await workspaceApi.updateNotification(id, { is_read: true });
-    setNotifications((prev) => prev.map((n) => (n.id === id ? res.data : n)));
+    const numId = Number(id);
+    setNotifications((prev) =>
+      prev.map((n) => (Number(n.id) === numId ? { ...n, is_read: true } : n))
+    );
+    try {
+      const res = await workspaceApi.updateNotification(numId, { is_read: true });
+      setNotifications((prev) =>
+        prev.map((n) => (Number(n.id) === numId ? { ...n, ...res.data, is_read: true } : n))
+      );
+    } catch (err) {
+      setNotifications((prev) =>
+        prev.map((n) => (Number(n.id) === numId ? { ...n, is_read: false } : n))
+      );
+      throw err;
+    }
   };
 
   const markAllNotificationsRead = async () => {
-    const unread = notifications.filter((n) => !n.is_read);
-    await Promise.all(unread.map((n) => workspaceApi.updateNotification(n.id, { is_read: true })));
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    try {
+      await workspaceApi.markAllNotificationsRead();
+    } catch (err) {
+      await refreshWorkspaceData();
+      throw err;
+    }
   };
 
   const getTeamMemberCount = (teamId) =>

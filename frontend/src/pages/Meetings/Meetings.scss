@@ -11,8 +11,51 @@
 
   &__grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
     gap: 1.25rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .meetings-page {
+    &__toolbar .vtl-btn {
+      flex: 1 1 auto;
+      min-height: 44px;
+      justify-content: center;
+    }
+
+    &__grid {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+      // Leave room for the mobile bottom nav
+      padding-bottom: calc(#{$mobile-nav-height} + 1rem);
+    }
+  }
+
+  .meeting-card {
+    h3 {
+      font-size: 1rem;
+      padding-right: 4rem;
+    }
+
+    &__meta {
+      gap: 0.5rem;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .meeting-card {
+    h3 {
+      font-size: 0.95rem;
+      padding-right: 3.5rem; // status badge is smaller on this size
+    }
+
+    &__status {
+      // Move badge to avoid clipping on very narrow screens
+      top: 0.85rem;
+      right: 0.85rem;
+    }
   }
 }
 

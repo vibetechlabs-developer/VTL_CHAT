@@ -4,10 +4,14 @@ import AppLayout from "../../components/vtl/AppLayout";
 import MessageArea from "../../components/chat/MessageArea";
 import MessageInput from "../../components/chat/MessageInput";
 import MemberPanel from "../../components/chat/MemberPanel";
+import Modal from "../../components/vtl/Modal";
+import ChatMobileList from "../../components/chat/ChatMobileList";
+import { useIsMobile } from "../../hooks/useMediaQuery";
 import { useWorkspace } from "../../context/WorkspaceContext";
+import { useToast } from "../../context/ToastContext";
 import { useChatSocket } from "../../hooks/useChatSocket";
 import * as workspaceApi from "../../services/workspaceApi";
-import { extractErrorMessage, getChannelDisplayName } from "../../utils/helpers";
+import { extractErrorMessage, getChannelDisplayName, getAvatarColor, getInitials } from "../../utils/helpers";
 import {
   fetchAllCursorPages,
   fetchCursorPage,
@@ -21,6 +25,8 @@ export default function Chat() {
   const { teamId, channelId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const toast = useToast();
+  const isMobile = useIsMobile();
 
   const {
     profile,
@@ -45,6 +51,7 @@ export default function Chat() {
     createDirectMessageChannel,
     leaveTeam,
     removeTeamMember,
+    users,
   } = useWorkspace();
 
   const [channelMessages, setChannelMessages] = useState([]);
@@ -56,6 +63,7 @@ export default function Chat() {
   const [sending, setSending] = useState(false);
   const [reactingId, setReactingId] = useState(null);
   const [showMembers, setShowMembers] = useState(true);
+  const [showNewDM, setShowNewDM] = useState(false);
   // typing: { [userId]: { username, timeout } }
   const [typingUsers, setTypingUsers] = useState({});
 
@@ -128,7 +136,7 @@ export default function Chat() {
     return () => {
       active = false;
     };
-  }, [currentChannelId, loadChannelData, profile?.id]);
+  }, [currentChannelId, loadChannelData]);
 
   const handleLoadOlderMessages = useCallback(async () => {
     if (!olderMessagesUrl || loadingOlderMessages) return;
@@ -350,12 +358,13 @@ export default function Chat() {
 
       setChannelMessages((prev) => {
         const arr = [...prev];
-        // Prefer uuid match; fall back to tempId in case WS already replaced it.
         const idx = arr.findIndex(
           (m) => m.client_uuid === clientUuid || m.id === tempId
         );
-        if (idx >= 0) arr[idx] = msg;
-        // If neither is found the WS handler already reconciled — no duplicate append.
+        if (idx >= 0) {
+          if (arr[idx].id === msg.id && !arr[idx].isOptimistic) return prev;
+          arr[idx] = { ...msg, client_uuid: clientUuid };
+        }
         return arr;
       });
 
@@ -369,7 +378,9 @@ export default function Chat() {
         }
       }
     } catch (err) {
-      logger.error(extractErrorMessage(err));
+      const message = extractErrorMessage(err);
+      logger.error(message);
+      toast.error(message);
       setChannelMessages((prev) => {
         const arr = [...prev];
         const idx = arr.findIndex(
@@ -433,6 +444,7 @@ export default function Chat() {
   const handleDMSelect = async (userId) => {
     try {
       const dmChannel = await createDirectMessageChannel(userId);
+      setShowNewDM(false);
       navigate(`/chat/dm/${dmChannel.id}`);
     } catch (err) {
       logger.error(extractErrorMessage(err));
@@ -470,12 +482,13 @@ export default function Chat() {
         end_time: endTime,
         channel: activeChannel.id,
       });
-      // Navigate to room with audio-only flag via state
       navigate(`/meetings/${res.data.id}/room`, { state: { audioOnly: true } });
     } catch (err) {
       logger.error("Failed to start audio call:", extractErrorMessage(err));
     }
   };
+
+  const showMobileList = isMobile && !currentChannelId && location.pathname.startsWith("/chat");
 
   return (
     <AppLayout
@@ -491,60 +504,102 @@ export default function Chat() {
       unreadNotificationCount={unreadNotificationCount}
     >
       <div className="chat-workspace">
-        <div className="chat-workspace__main">
-          {connectionStatus !== "connected" && connectionStatus !== "disconnected" && (
-            <div className={`chat-workspace__connection-status chat-workspace__connection-status--${connectionStatus}`}>
-              {connectionStatus === "connecting" ? "Connecting to chat..." : "Connection lost. Reconnecting..."}
-            </div>
-          )}
-          <MessageArea
-            channel={activeChannel}
-            messages={channelMessages}
-            usersMap={usersMap}
-            profile={profile}
-            reactions={channelReactions}
-            attachments={channelAttachments}
-            loading={messagesLoading}
-            loadingOlder={loadingOlderMessages}
-            hasOlder={Boolean(olderMessagesUrl)}
-            onLoadOlder={handleLoadOlderMessages}
-            typingUsers={typingUsers}
-            onReact={handleReact}
-            reactingId={reactingId}
-            onPin={handlePin}
-            onEditMessage={handleEditMessage}
-            onDeleteMessage={handleDeleteMessage}
-            onClearChat={handleClearChat}
-            onToggleMembers={() => setShowMembers(!showMembers)}
-            onDMSelect={handleDMSelect}
-            onVideoCall={handleVideoCall}
-            onAudioCall={handleAudioCall}
-          />
-          <MessageInput
-            channelName={getChannelDisplayName(activeChannel, profile?.id, usersMap)}
-            onSend={handleSend}
-            onTyping={handleTyping}
-            disabled={!currentChannelId}
-            sending={sending}
-            members={teamMembersList}
+        {showMobileList ? (
+          <ChatMobileList
+            channels={channels}
             teams={teams}
-            usersMap={usersMap}
-          />
-        </div>
-
-        {showMembers && activeChannel?.channel_type !== "DIRECT" && (
-          <MemberPanel
-            members={teamMembersList}
-            usersMap={usersMap}
+            users={users}
             profile={profile}
-            teamName={activeTeam?.name}
-            onDMSelect={handleDMSelect}
-            onLeave={handleLeaveTeam}
-            onRemove={currentUserIsAdmin ? handleRemoveMember : undefined}
-            isAdmin={currentUserIsAdmin}
+            onNewChat={() => setShowNewDM(true)}
           />
+        ) : (
+          <>
+            <div className="chat-workspace__main">
+              {connectionStatus !== "connected" && connectionStatus !== "disconnected" && (
+                <div className={`chat-workspace__connection-status chat-workspace__connection-status--${connectionStatus}`}>
+                  {connectionStatus === "connecting" ? "Connecting to chat..." : "Connection lost. Reconnecting..."}
+                </div>
+              )}
+              <MessageArea
+                channel={activeChannel}
+                messages={channelMessages}
+                usersMap={usersMap}
+                profile={profile}
+                reactions={channelReactions}
+                attachments={channelAttachments}
+                loading={messagesLoading}
+                loadingOlder={loadingOlderMessages}
+                hasOlder={Boolean(olderMessagesUrl)}
+                onLoadOlder={handleLoadOlderMessages}
+                typingUsers={typingUsers}
+                onReact={handleReact}
+                reactingId={reactingId}
+                onPin={handlePin}
+                onEditMessage={handleEditMessage}
+                onDeleteMessage={handleDeleteMessage}
+                onClearChat={handleClearChat}
+                onToggleMembers={() => setShowMembers(!showMembers)}
+                onDMSelect={handleDMSelect}
+                onVideoCall={handleVideoCall}
+                onAudioCall={handleAudioCall}
+                onNewChat={() => setShowNewDM(true)}
+              />
+              <MessageInput
+                channelName={getChannelDisplayName(activeChannel, profile?.id, usersMap)}
+                onSend={handleSend}
+                onTyping={handleTyping}
+                disabled={!currentChannelId}
+                sending={sending}
+                members={teamMembersList}
+                teams={teams}
+                usersMap={usersMap}
+              />
+            </div>
+
+            {showMembers && activeChannel?.channel_type !== "DIRECT" && (
+              <MemberPanel
+                members={teamMembersList}
+                usersMap={usersMap}
+                profile={profile}
+                teamName={activeTeam?.name}
+                onDMSelect={handleDMSelect}
+                onLeave={handleLeaveTeam}
+                onRemove={currentUserIsAdmin ? handleRemoveMember : undefined}
+                isAdmin={currentUserIsAdmin}
+              />
+            )}
+          </>
         )}
       </div>
+
+      <Modal open={showNewDM} onClose={() => setShowNewDM(false)} title="New Chat">
+        <div className="chat-new-dm">
+          <p className="chat-new-dm__hint">Select someone to start a direct message</p>
+          <div className="chat-new-dm__list">
+            {users
+              .filter((u) => Number(u.id) !== Number(profile?.id))
+              .map((u) => (
+                <button
+                  key={u.id}
+                  type="button"
+                  className="chat-new-dm__user"
+                  onClick={() => handleDMSelect(u.id)}
+                >
+                  <div
+                    className="chat-new-dm__avatar"
+                    style={{ background: getAvatarColor(u.username) }}
+                  >
+                    {getInitials(u.username)}
+                  </div>
+                  <div className="chat-new-dm__info">
+                    <strong>{u.username}</strong>
+                    <span>{u.email}</span>
+                  </div>
+                </button>
+              ))}
+          </div>
+        </div>
+      </Modal>
     </AppLayout>
   );
 }

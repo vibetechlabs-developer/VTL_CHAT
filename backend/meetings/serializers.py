@@ -34,6 +34,7 @@ class MeetingSerializer(serializers.ModelSerializer):
 
 
 class MeetingParticipantSerializer(serializers.ModelSerializer):
+    user = serializers.SerializerMethodField()
 
     class Meta:
         model = MeetingParticipant
@@ -52,3 +53,7 @@ class MeetingParticipantSerializer(serializers.ModelSerializer):
         ]
 
         read_only_fields = ["last_seen_at"]
+
+    def get_user(self, obj):
+        from users.serializers import UserSerializer
+        return UserSerializer(obj.user).data

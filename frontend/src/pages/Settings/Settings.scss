@@ -6,6 +6,19 @@
   flex-direction: column;
   gap: 1.25rem;
   max-width: 720px;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .settings-page {
+    gap: 1rem;
+  }
+
+  .settings-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.65rem;
+  }
 }
 
 .settings-section {

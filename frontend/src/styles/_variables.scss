@@ -53,14 +53,17 @@ $topbar-height: 58px;
 
 $z-sidebar: 200;
 $z-topbar: 150;
-$z-modal: 500;
-$z-toast: 1000;
+$z-modal: 1200;
+$z-toast: 1300;
 
 // ── Responsive Breakpoints ────────────────────────────────────────────────────
 // Mobile-first: use max-width for these breakpoints
+$bp-mobile-sm: 480px; // ≤ 480px  → small mobile (iPhone SE, Galaxy A)
 $bp-mobile:  767px;   // < 768px  → mobile single-panel
 $bp-tablet: 1023px;   // 768-1023px → tablet two-panel
-// $bp-desktop: 1024px+ → full multi-panel (default, no media query needed)
+$bp-small-laptop: 1279px; // 1024-1279px → iPad landscape / small laptop
+// $bp-desktop: 1280px+ → standard desktop (default, no media query needed)
+$bp-large-desktop: 1919px; // < 1920px  → standard desktop cap
 
 // Mobile bottom navigation bar height
 $mobile-nav-height: 60px;

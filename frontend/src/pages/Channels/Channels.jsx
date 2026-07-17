@@ -8,7 +8,8 @@ import Modal from "../../components/vtl/Modal";
 import { useWorkspace } from "../../context/WorkspaceContext";
 import { useConfirm } from "../../context/ConfirmContext";
 import { useToast } from "../../context/ToastContext";
-import { extractErrorMessage } from "../../utils/helpers";import "./Channels.scss";
+import { extractErrorMessage } from "../../utils/helpers";
+import "./Channels.scss";
 
 export default function Channels() {
   const {
@@ -41,9 +42,38 @@ export default function Channels() {
     return counts;
   }, [teamMembers]);
 
-  const filtered = channels.filter((c) =>
-    c.name.toLowerCase().includes(search.toLowerCase())
+  const isTeamAdmin = (teamId) => {
+    const membership = teamMembers.find(
+      (m) => Number(m.team) === Number(teamId) && Number(m.user) === Number(profile?.id)
+    );
+    if (membership?.role === "ADMIN") return true;
+    const team = teams.find((t) => Number(t.id) === Number(teamId));
+    return Number(team?.created_by) === Number(profile?.id);
+  };
+
+  const canDeleteChannel = (ch) => {
+    if (ch.channel_type === "DIRECT") return false;
+    if (Number(ch.created_by) === Number(profile?.id)) return true;
+    return isTeamAdmin(ch.team);
+  };
+
+  const workspaceChannels = useMemo(
+    () => channels.filter((c) => c.channel_type !== "DIRECT"),
+    [channels]
   );
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return workspaceChannels;
+    return workspaceChannels.filter((c) => {
+      const team = teams.find((t) => Number(t.id) === Number(c.team));
+      return (
+        c.name.toLowerCase().includes(q) ||
+        (c.description || "").toLowerCase().includes(q) ||
+        (team?.name || "").toLowerCase().includes(q)
+      );
+    });
+  }, [workspaceChannels, teams, search]);
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -72,10 +102,14 @@ export default function Channels() {
   const handleDelete = async (e, ch) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!canDeleteChannel(ch)) {
+      toast.error("Only team admins or channel creators can delete channels.");
+      return;
+    }
     const ok = await confirm({
       title: "Delete Channel",
-      message: `Delete #${ch.name}? This cannot be undone.`,
-      confirmText: "Delete",
+      message: `Delete #${ch.name} permanently? All messages in this channel will be removed. This cannot be undone.`,
+      confirmText: "Delete Channel",
       type: "danger",
     });
     if (!ok) return;
@@ -110,19 +144,25 @@ export default function Channels() {
       {filtered.length === 0 ? (
         <EmptyState
           icon={<Hash size={28} />}
-          title="No channels yet"
-          description="Create a channel to start conversations with your team."
+          title={search.trim() ? "No matching channels" : "No channels yet"}
+          description={
+            search.trim()
+              ? `Nothing matches "${search.trim()}". Try a different name or team.`
+              : "Create a channel to start conversations with your team."
+          }
           action={
-            <button className="vtl-btn vtl-btn--primary" onClick={() => setShowModal(true)}>
-              <Plus size={16} /> Create Channel
-            </button>
+            !search.trim() ? (
+              <button className="vtl-btn vtl-btn--primary" onClick={() => setShowModal(true)}>
+                <Plus size={16} /> Create Channel
+              </button>
+            ) : null
           }
         />
       ) : (
         <GlassCard padding={false} className="channels-page__list">
           {filtered.map((ch) => {
             const team = teams.find((t) => t.id === ch.team);
-            const url = `/teams/${team?.id || ''}/channels/${ch.id}`;
+            const url = `/teams/${team?.id || ""}/channels/${ch.id}`;
             return (
               <Link key={ch.id} to={url} className="channel-row-link">
                 <div className="channel-row">
@@ -130,21 +170,23 @@ export default function Channels() {
                     {ch.channel_type === "PRIVATE" ? <Lock size={18} /> : <Hash size={18} />}
                   </div>
                   <div className="channel-row__info">
-                    <div className="channel-row__name">{ch.name}</div>
+                    <div className="channel-row__name">#{ch.name}</div>
                     <p>{ch.description || team?.name || "No description"}</p>
                   </div>
                   <span className="channel-row__members">
                     {memberCounts[ch.team] || 0} members
                   </span>
                   <span className="channel-row__type">{ch.channel_type}</span>
-                  <button
-                    type="button"
-                    className="channel-row__delete"
-                    title="Delete channel"
-                    onClick={(e) => handleDelete(e, ch)}
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  {canDeleteChannel(ch) && (
+                    <button
+                      type="button"
+                      className="channel-row__delete"
+                      title="Delete channel"
+                      onClick={(e) => handleDelete(e, ch)}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
                 </div>
               </Link>
             );

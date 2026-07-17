@@ -113,10 +113,15 @@ export default function Teams() {
     !isTeamMember(team.id) && team.team_type === "PUBLIC";
 
 
-  const filtered = useMemo(
-    () => teams.filter((t) => t.name.toLowerCase().includes(search.toLowerCase())),
-    [teams, search]
-  );
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return teams;
+    return teams.filter(
+      (t) =>
+        t.name.toLowerCase().includes(q) ||
+        (t.description || "").toLowerCase().includes(q)
+    );
+  }, [teams, search]);
 
   const availableUsers = useMemo(() => {
     if (!selectedTeam) return [];
@@ -262,14 +267,17 @@ export default function Teams() {
     }
     const ok = await confirm({
       title: "Delete Team",
-      message: `Delete "${team.name}" and all its channels? This cannot be undone.`,
-      confirmText: "Delete",
+      message: `Delete "${team.name}" permanently? All channels, messages, and member associations will be removed. This cannot be undone.`,
+      confirmText: "Delete Team",
       type: "danger",
     });
     if (!ok) return;
     try {
       await deleteTeam(team.id);
       toast.success("Team deleted");
+      if (selectedTeam && Number(selectedTeam.id) === Number(team.id)) {
+        setSelectedTeam(null);
+      }
     } catch (err) {
       toast.error(extractErrorMessage(err));
     }
@@ -497,12 +505,18 @@ export default function Teams() {
       {filtered.length === 0 ? (
         <EmptyState
           icon={<Users size={28} />}
-          title="No teams yet"
-          description="Create your first team to start collaborating with your workspace."
+          title={search.trim() ? "No matching teams" : "No teams yet"}
+          description={
+            search.trim()
+              ? `Nothing matches "${search.trim()}". Try a different name.`
+              : "Create your first team to start collaborating with your workspace."
+          }
           action={
-            <button className="vtl-btn vtl-btn--primary" onClick={() => setShowModal(true)}>
-              <Plus size={16} /> Create Team
-            </button>
+            !search.trim() ? (
+              <button className="vtl-btn vtl-btn--primary" onClick={() => setShowModal(true)}>
+                <Plus size={16} /> Create Team
+              </button>
+            ) : null
           }
         />
       ) : (
