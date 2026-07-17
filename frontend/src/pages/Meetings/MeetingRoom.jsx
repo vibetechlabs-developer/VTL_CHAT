@@ -210,6 +210,7 @@ export default function MeetingRoom() {
   const [meeting, setMeeting] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [mediaError, setMediaError] = useState(null);
 
   // Media state
   const [micEnabled, setMicEnabled] = useState(false);
@@ -291,20 +292,47 @@ export default function MeetingRoom() {
     for (const constraints of attempts) {
       try {
         const s = await navigator.mediaDevices.getUserMedia(constraints);
+        setMediaError(null);
         return { stream: s, hasVideo: !!s.getVideoTracks().length, hasAudio: !!s.getAudioTracks().length };
       } catch (err) { lastError = err; }
     }
-    
+
     if (lastError?.name === 'NotAllowedError' || lastError?.name === 'PermissionDeniedError') {
        logger.warn("Camera/Mic permissions denied by user.");
-       alert("Camera or Microphone access was denied. You will join the meeting in 'off' mode.");
+       setMediaError({
+         type: 'permission',
+         message: "Camera or Microphone access was denied."
+       });
+    } else if (lastError?.name === 'NotFoundError') {
+       logger.warn("No camera/mic hardware found:", lastError);
+       setMediaError({
+         type: 'hardware',
+         message: "No camera or microphone found on your device."
+       });
     } else if (lastError) {
        logger.warn("Could not access media devices:", lastError);
-       alert("Could not access Camera/Microphone. You will join the meeting in 'off' mode.");
+       setMediaError({
+         type: 'other',
+         message: "Could not access Camera/Microphone: " + lastError.message
+       });
     }
 
     return { stream: new MediaStream(), hasVideo: false, hasAudio: false };
   }, []);
+
+  // ---------- RETRY MEDIA ACCESS ----------
+  const retryMediaAccess = useCallback(async () => {
+    setMediaError(null);
+    const { stream, hasVideo, hasAudio } = await getCameraStream();
+    cameraStreamRef.current = stream;
+    activeStreamRef.current = stream;
+    setCamEnabled(hasVideo);
+    setMicEnabled(hasAudio);
+    camEnabledRef.current = hasVideo;
+    micEnabledRef.current = hasAudio;
+    attachStream(localVideoRef.current, stream);
+    attachStream(pipVideoRef.current, stream);
+  }, [getCameraStream]);
 
   const updateCallConnected = useCallback(() => {
     const connected = Object.values(peersRef.current).some(
@@ -951,6 +979,40 @@ export default function MeetingRoom() {
     );
   }
 
+  const mediaErrorContent = mediaError && (
+    <div className="gmeet-media-error">
+      <AlertCircle size={20} />
+      <div className="gmeet-media-error__content">
+        <span className="gmeet-media-error__message">{mediaError.message}</span>
+        {mediaError.type === 'permission' && (
+          <div className="gmeet-media-error__instructions">
+            <span>To fix:</span>
+            <ol>
+              <li>Click the lock icon 🔒 in the address bar (left of the URL)</li>
+              <li>Click 'Site settings' or 'Permissions'</li>
+              <li>Find 'Camera' and 'Microphone' and set them to 'Allow'</li>
+              <li>If it shows 'Block', click 'Reset permissions first'</li>
+              <li>Close the settings panel and click Retry below</li>
+            </ol>
+          </div>
+        )}
+        {mediaError.type === 'hardware' && (
+          <div className="gmeet-media-error__instructions">
+            <span>Please ensure:</span>
+            <ul>
+              <li>Your camera/microphone is connected</li>
+              <li>No other app is using them</li>
+              <li>Your device drivers are working</li>
+            </ul>
+          </div>
+        )}
+      </div>
+      <button className="vtl-btn vtl-btn--primary vtl-btn--sm" onClick={retryMediaAccess}>
+        Retry
+      </button>
+    </div>
+  );
+
   const peersArray = Object.entries(peers);
   const totalCount = peersArray.length + 1;
   const userName = profile?.username || "You";
@@ -980,6 +1042,7 @@ export default function MeetingRoom() {
           {wsStatus === 'lost' && (<span className="status-badge lost">Connection lost – please rejoin</span>)}
         </div>
         <div className="gmeet__header-right">
+          {mediaErrorContent}
           <div className="gmeet__participants-badge">
             <Users size={13} />
             <span>{totalCount}</span>
