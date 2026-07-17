@@ -272,7 +272,7 @@ if not DEBUG and not LOCAL_DEV:
     CSRF_COOKIE_SECURE = True
     SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=True, cast=bool)
 
-# Content Security Policy
+# Content Security Policy - apply to both dev and production
 CSP_DEFAULT_SRC = ("'self'",)
 CSP_STYLE_SRC = ("'self'", "'unsafe-inline'", "https://fonts.googleapis.com")
 CSP_FONT_SRC = ("'self'", "https://fonts.gstatic.com")
@@ -281,10 +281,11 @@ CSP_SCRIPT_SRC = ("'self'", "'unsafe-inline'", "'unsafe-eval'")
 CSP_CONNECT_SRC = ("'self'",)
 CSP_MEDIA_SRC = ("'self'",)
 CSP_FRAME_SRC = ("'self'",)
+CSP_REPORT_ONLY = False  # Enforce CSP in production, report-only in dev
 
 # Permissions Policy (formerly Feature Policy)
 SECURE_PERMISSIONS_POLICY = {
-    "camera": "(self)",
-    "microphone": "(self)",
-    "geolocation": "(self)",
+    "camera": "*",
+    "microphone": "*",
+    "geolocation": "*",
 }
