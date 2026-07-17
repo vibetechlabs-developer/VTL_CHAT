@@ -79,6 +79,13 @@ export const editMessage = (messageId, data) => api.put(`/messages/${messageId}/
 export const deleteMessage = (messageId) => api.delete(`/messages/${messageId}/`);
 export const pinMessage = (messageId) => api.post(`/messages/${messageId}/pin/`);
 export const clearChat = (channelId) => api.post("/messages/clear/", { channel: channelId });
+export const searchMessages = (query, channelId = null) =>
+  api.get("/messages/search/", {
+    params: {
+      q: query,
+      ...(channelId ? { channel: channelId } : {}),
+    },
+  });
 export const getReactions = (channelId, cursorUrl = null) => {
   if (cursorUrl) return api.get(cursorUrl);
   return api.get("/messages/reactions/", { params: channelId ? { channel: channelId } : {} });
@@ -114,3 +121,4 @@ export const sendReadReceipt = (channelId, messageId) =>
 
 export const getNotifications = () => api.get("/notifications/");
 export const updateNotification = (id, data) => api.put(`/notifications/${id}/`, data);
+export const markAllNotificationsRead = () => api.post("/notifications/mark-all-read/");

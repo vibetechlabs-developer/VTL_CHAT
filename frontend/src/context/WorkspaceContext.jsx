@@ -2,6 +2,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef } from "react";
 import { useSettings } from "./SettingsContext";
 import { useGlobalSocket } from "../hooks/useGlobalSocket";
+import { shouldShowDesktopNotification } from "../utils/appFocus";
 import { AuthProvider, useAuth } from "./AuthContext";
 import { WorkspaceDataProvider, useWorkspaceData } from "./WorkspaceDataContext";
 import { ChatProvider, useChat } from "./ChatContext";
@@ -27,7 +28,12 @@ function WorkspaceComposer({ children }) {
         if (prev.some((x) => x.id === n.id)) return prev;
         return [n, ...prev];
       });
-      if (settings.desktopNotifications && "Notification" in window && Notification.permission === "granted") {
+      if (
+        settings.desktopNotifications &&
+        shouldShowDesktopNotification() &&
+        "Notification" in window &&
+        Notification.permission === "granted"
+      ) {
         new Notification(n.title || "New Notification", {
           body: n.message || "",
           icon: "/favicon.ico",
@@ -58,7 +64,12 @@ function WorkspaceComposer({ children }) {
     const newNotifs = workspace.notifications.filter((n) => !prevIds.has(n.id));
 
     newNotifs.forEach((n) => {
-      if (settings.desktopNotifications && "Notification" in window && Notification.permission === "granted") {
+      if (
+        settings.desktopNotifications &&
+        shouldShowDesktopNotification() &&
+        "Notification" in window &&
+        Notification.permission === "granted"
+      ) {
         new Notification(n.title || "New Notification", {
           body: n.message || "",
           icon: "/favicon.ico",

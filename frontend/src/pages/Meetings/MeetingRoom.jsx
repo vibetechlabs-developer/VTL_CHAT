@@ -99,7 +99,7 @@ function RemoteTile({ peerId, peer }) {
       <div className="meet-tile__overlay">
         <div className="meet-tile__name">
           {isMuted && <MicOff size={12} className="meet-tile__mute-icon" />}
-          <span>{peer.username || "Participant"}</span>
+          <span>{peer.username}</span>
         </div>
       </div>
     </div>
@@ -136,7 +136,7 @@ function TeamsAudioCard({ username, isMuted, isSelf, avatarColors }) {
         )}
       </div>
       <div className="teams-card__name">
-        <span>{username || "Participant"}{isSelf ? " (You)" : ""}</span>
+        <span>{username}{isSelf ? " (You)" : ""}</span>
       </div>
     </div>
   );
@@ -243,6 +243,7 @@ export default function MeetingRoom() {
   const camEnabledRef = useRef(false);
   const screenSharingRef = useRef(false);
   const participantIdRef = useRef(null);
+  const pendingOffersRef = useRef([]);
 
   const peerCount = Object.keys(peers).length;
   const callStatusLabel = !callConnected
@@ -368,7 +369,7 @@ export default function MeetingRoom() {
         let remoteStream = streams[0] || existing?.stream || new MediaStream();
         if (!remoteStream.getTracks().includes(track)) remoteStream.addTrack(track);
         if (peersRef.current[peerId]) peersRef.current[peerId].stream = remoteStream;
-        return { ...prev, [peerId]: { ...existing, stream: remoteStream } };
+        return { ...prev, [peerId]: { ...existing, stream: remoteStream, username: existing?.username } };
       });
     };
 
@@ -424,6 +425,7 @@ export default function MeetingRoom() {
             ...prev,
             [sender_id]: {
               ...prev[sender_id],
+              username: sender_username,
               micEnabled: micEnabled ?? true,
               camEnabled: camEnabled ?? true
             }
@@ -461,6 +463,7 @@ export default function MeetingRoom() {
             ...prev,
             [sender_id]: {
               ...prev[sender_id],
+              username: prev[sender_id].username,
               micEnabled,
               camEnabled
             }
@@ -480,6 +483,7 @@ export default function MeetingRoom() {
               ...prev,
               [sender_id]: {
                 ...prev[sender_id],
+                username: prev[sender_id].username || sender_username,
                 micEnabled: message.micEnabled ?? prev[sender_id]?.micEnabled,
                 camEnabled: message.camEnabled ?? prev[sender_id]?.camEnabled,
               },
@@ -513,6 +517,7 @@ export default function MeetingRoom() {
                 ...prev,
                 [sender_id]: {
                   ...prev[sender_id],
+                  username: prev[sender_id].username,
                   micEnabled: message.micEnabled ?? prev[sender_id]?.micEnabled,
                   camEnabled: message.camEnabled ?? prev[sender_id]?.camEnabled,
                 },
@@ -561,6 +566,11 @@ export default function MeetingRoom() {
             micEnabled: micEnabledRef.current,
             camEnabled: camEnabledRef.current,
           }));
+          // Send any pending offers to existing participants
+          pendingOffersRef.current.forEach(offer => {
+            wsRef.current.send(JSON.stringify(offer));
+          });
+          pendingOffersRef.current = [];
         };
 
         socket.onmessage = async (e) => {
@@ -629,6 +639,31 @@ export default function MeetingRoom() {
           setAudioOnly(true);
         }
 
+        // Fetch existing participants and reconnect to those who are present
+        try {
+          const participantsRes = await workspaceApi.getMeetingParticipants(meetingId);
+          if (mounted && participantsRes.data) {
+            const presentParticipants = participantsRes.data.filter(p => p.is_present && p.user !== profile?.id);
+            for (const participant of presentParticipants) {
+              const username = participant.user?.username || participant.user_username || participant.username;
+              const userId = participant.user?.id || participant.user_id || participant.id;
+              const pc = createPeerConnection(userId, username);
+              peersRef.current[userId].isOfferer = true;
+              const offer = await pc.createOffer();
+              await pc.setLocalDescription(offer);
+              // Store pending offer to send after WebSocket connects
+              pendingOffersRef.current.push({
+                target: userId,
+                sdp: pc.localDescription,
+                micEnabled: micEnabledRef.current,
+                camEnabled: camEnabledRef.current,
+              });
+            }
+          }
+        } catch (err) {
+          logger.warn("Failed to fetch existing participants:", err);
+        }
+
         initWebSocket();
       } catch (err) {
         if (mounted) setError(extractErrorMessage(err) || "Failed to join meeting.");
@@ -646,6 +681,7 @@ export default function MeetingRoom() {
         // Signal intentional leave so onclose does not retry
         const leaveId = participantIdRef.current;
         participantIdRef.current = null;
+        pendingOffersRef.current = [];
         cameraStreamRef.current?.getTracks().forEach(t => t.stop());
         screenStreamRef.current?.getTracks().forEach(t => t.stop());
         Object.values(peersRef.current).forEach(p => p.pc.close());
@@ -655,7 +691,7 @@ export default function MeetingRoom() {
           workspaceApi.updateParticipantStatus(meetingId, leaveId, { is_present: false }).catch(() => {});
         }
       };
-  }, [meetingId]);
+  }, [meetingId, profile?.id, createPeerConnection]);
 
   // ---------- TOGGLE MIC ----------
   const toggleMic = useCallback(async () => {

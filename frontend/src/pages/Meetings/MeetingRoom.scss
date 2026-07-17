@@ -327,12 +327,26 @@ $teams-border: rgba(255, 255, 255, 0.06);
   &--count-4 {
     grid-template-columns: repeat(2, minmax(240px, 560px));
     grid-template-rows: repeat(2, 1fr);
+
+    // Single column on phones
+    @media (max-width: 480px) {
+      grid-template-columns: 1fr;
+      grid-template-rows: repeat(auto-fill, minmax(180px, 1fr));
+    }
   }
 
   &--count-5,
   &--count-6 {
     grid-template-columns: repeat(3, minmax(200px, 400px));
     grid-template-rows: repeat(2, 1fr);
+
+    // Two columns on tablet, one column on phone
+    @media (max-width: 767px) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    @media (max-width: 480px) {
+      grid-template-columns: 1fr;
+    }
   }
 
   &--count-7,
@@ -340,6 +354,10 @@ $teams-border: rgba(255, 255, 255, 0.06);
   &--count-9 {
     grid-template-columns: repeat(3, 1fr);
     grid-template-rows: repeat(3, 1fr);
+
+    @media (max-width: 480px) {
+      grid-template-columns: 1fr;
+    }
   }
 }
 
@@ -570,6 +588,17 @@ $teams-border: rgba(255, 255, 255, 0.06);
     }
 
     &:hover { background: color-mix(in srgb, $gm-danger 80%, black); }
+
+    // On small phones: flow inside the flex row instead of absolute
+    @media (max-width: 480px) {
+      position: relative;
+      right: auto;
+      top: auto;
+      transform: none;
+      height: 48px;
+      padding: 0 1rem;
+      border-radius: 12px;
+    }
   }
 }
 
@@ -669,3 +698,146 @@ $teams-border: rgba(255, 255, 255, 0.06);
   }
 }
 
+
+// ── Mobile responsive rules for MeetingRoom ──────────────────────────────────
+
+// Fluid teams-card on tablet/mobile
+@media (max-width: 767px) {
+  .teams-call {
+    padding: 1rem;
+  }
+
+  .teams-call__grid {
+    gap: 1rem;
+  }
+
+  .teams-card {
+    // Fluid width — fit two cards side-by-side on larger phones
+    width: min(260px, calc(50vw - 1.5rem));
+    height: auto;
+    min-height: 220px;
+    padding: 1.25rem 0.75rem;
+  }
+
+  .teams-card__avatar-wrap {
+    width: 90px;
+    height: 90px;
+    margin-bottom: 0.85rem;
+  }
+
+  .teams-card__avatar {
+    width: 90px;
+    height: 90px;
+
+    span { font-size: 2rem; }
+  }
+
+  // Header: collapse less important info
+  .gmeet__header {
+    padding: 0 0.85rem;
+    height: 48px;
+  }
+
+  // Control bar: reduce size
+  .gmeet__controls {
+    height: 76px;
+    padding: 0 0.75rem;
+  }
+
+  .ctrl-btn {
+    min-width: 54px;
+    height: 54px;
+    gap: 0.2rem;
+  }
+
+  .ctrl-btn__icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .ctrl-btn__label {
+    font-size: 0.62rem;
+  }
+}
+
+// Very small phones (≤480px)
+@media (max-width: 480px) {
+  .teams-call {
+    padding: 0.5rem;
+  }
+
+  .teams-call__grid {
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: stretch;
+  }
+
+  .teams-card {
+    // Full-width stacked cards on small phones
+    width: 100%;
+    min-height: 180px;
+  }
+
+  .teams-card__mute-badge {
+    width: 24px;
+    height: 24px;
+  }
+
+  // PiP picture-in-picture: smaller on phones
+  .meet-pip {
+    width: 120px;
+    height: 68px;
+    bottom: 0.5rem;
+    right: 0.5rem;
+  }
+
+  // Control bar: wrap on very small screens
+  .gmeet__controls {
+    height: auto;
+    min-height: 64px;
+    padding: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .gmeet__controls-center {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.15rem;
+  }
+
+  .ctrl-btn {
+    min-width: 50px;
+    height: 50px;
+  }
+
+  .ctrl-btn__icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .ctrl-btn__label {
+    font-size: 0.58rem;
+  }
+
+  // Participants badge: hide on tiny screens to save space
+  .gmeet__participants-badge {
+    display: none;
+  }
+
+  // Header timer
+  .gmeet__timer {
+    display: none;
+  }
+}
+
+// Device picker popup: prevent overflow on all screen sizes
+@media (max-width: 767px) {
+  .device-menu {
+    left: 0.5rem;
+    right: 0.5rem;
+    width: auto;
+    max-width: calc(100vw - 1rem);
+    bottom: 70px;
+  }
+}

@@ -10,6 +10,9 @@ import { ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen, Plus,
   Shield,
   LogOut,
   Loader2,
+  Trash2,
+  Search,
+  MessageSquarePlus,
 } from "lucide-react";
 import { useConfirm } from "../../context/ConfirmContext";
 import { useToast } from "../../context/ToastContext";
@@ -22,15 +25,14 @@ import SearchableMultiSelect from "./SearchableMultiSelect";
 import * as workspaceApi from "../../services/workspaceApi";
 import "./ContextSidebar.scss";
 
-export default function ContextSidebar({ isOpen, onClose }) {
+export default function ContextSidebar({ isOpen, onClose, isMobile = false }) {
   const location = useLocation();
 
-  // Close sidebar drawer automatically when location changes (mobile behavior)
   useEffect(() => {
-    if (isOpen && onClose) {
+    if (isOpen && onClose && isMobile) {
       onClose();
     }
-  }, [location.pathname, onClose]);
+  }, [location.pathname, onClose, isOpen, isMobile]);
   const navigate = useNavigate();
   const confirm = useConfirm();
   const toast = useToast();
@@ -47,6 +49,8 @@ export default function ContextSidebar({ isOpen, onClose }) {
     createTeam,
     addTeamMember,
     leaveTeam,
+    deleteTeam,
+    deleteChannel,
     markNotificationRead,
     markAllNotificationsRead,
   } = useWorkspace();
@@ -73,6 +77,8 @@ export default function ContextSidebar({ isOpen, onClose }) {
   const [inviteTeamMembers, setInviteTeamMembers] = useState([]);
   const [inviteMembersLoading, setInviteMembersLoading] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [sidebarSearch, setSidebarSearch] = useState("");
+  const [newDmSearch, setNewDmSearch] = useState("");
 
   const activeTab = useMemo(() => {
     const path = location.pathname;
@@ -118,6 +124,113 @@ export default function ContextSidebar({ isOpen, onClose }) {
     const team = teams.find((t) => Number(t.id) === Number(teamId));
     return Number(team?.created_by) === Number(profile?.id);
   };
+
+  const canDeleteChannel = (ch, teamId) => {
+    if (ch.channel_type === "DIRECT") return false;
+    if (Number(ch.created_by) === Number(profile?.id)) return true;
+    return isTeamAdmin(teamId);
+  };
+
+  const handleDeleteTeam = async (team) => {
+    if (!isTeamAdmin(team.id)) {
+      toast.error("Only team admins can delete this team.");
+      return;
+    }
+    const ok = await confirm({
+      title: "Delete Team",
+      message: `Delete "${team.name}" permanently? All channels, messages, and member associations will be removed. This cannot be undone.`,
+      confirmText: "Delete Team",
+      type: "danger",
+    });
+    if (!ok) return;
+    try {
+      await deleteTeam(team.id);
+      toast.success(`"${team.name}" deleted`);
+      if (location.pathname.startsWith(`/teams/${team.id}`)) {
+        navigate("/teams");
+      }
+    } catch (err) {
+      toast.error(extractErrorMessage(err));
+    }
+  };
+
+  const handleDeleteChannel = async (e, ch, teamId) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!canDeleteChannel(ch, teamId)) {
+      toast.error("Only team admins or channel creators can delete channels.");
+      return;
+    }
+    const ok = await confirm({
+      title: "Delete Channel",
+      message: `Delete #${ch.name} permanently? All messages in this channel will be removed. This cannot be undone.`,
+      confirmText: "Delete Channel",
+      type: "danger",
+    });
+    if (!ok) return;
+    try {
+      await deleteChannel(ch.id);
+      toast.success(`#${ch.name} deleted`);
+      if (activeChannelId === ch.id) {
+        navigate("/teams");
+      }
+    } catch (err) {
+      toast.error(extractErrorMessage(err));
+    }
+  };
+
+  const searchLower = sidebarSearch.trim().toLowerCase();
+
+  const filteredTeamsTree = useMemo(() => {
+    if (!searchLower) return teams;
+    return teams.filter((team) => {
+      const teamMatch =
+        team.name.toLowerCase().includes(searchLower) ||
+        (team.description || "").toLowerCase().includes(searchLower);
+      const channelMatch = channels.some(
+        (c) =>
+          Number(c.team) === Number(team.id) &&
+          c.channel_type !== "DIRECT" &&
+          (c.name.toLowerCase().includes(searchLower) ||
+            (c.description || "").toLowerCase().includes(searchLower))
+      );
+      return teamMatch || channelMatch;
+    });
+  }, [teams, channels, searchLower]);
+
+  const getFilteredTeamChannels = (teamId) => {
+    const teamChannels = channels.filter(
+      (c) => Number(c.team) === Number(teamId) && c.channel_type !== "DIRECT"
+    );
+    if (!searchLower) return teamChannels;
+    const team = teams.find((t) => Number(t.id) === Number(teamId));
+    const teamMatch =
+      team?.name.toLowerCase().includes(searchLower) ||
+      (team?.description || "").toLowerCase().includes(searchLower);
+    if (teamMatch) return teamChannels;
+    return teamChannels.filter(
+      (c) =>
+        c.name.toLowerCase().includes(searchLower) ||
+        (c.description || "").toLowerCase().includes(searchLower)
+    );
+  };
+
+  const filteredDmChannels = useMemo(() => {
+    const dms = channels.filter((c) => c.channel_type === "DIRECT");
+    if (!searchLower) return dms;
+    return dms.filter((ch) => getDMName(ch).toLowerCase().includes(searchLower));
+  }, [channels, searchLower, users, profile]);
+
+  const filteredNewDmUsers = useMemo(() => {
+    const available = users.filter((u) => Number(u.id) !== Number(profile?.id));
+    const q = newDmSearch.trim().toLowerCase();
+    if (!q) return available;
+    return available.filter(
+      (u) =>
+        u.username.toLowerCase().includes(q) ||
+        (u.email || "").toLowerCase().includes(q)
+    );
+  }, [users, profile, newDmSearch]);
 
   const handleLeaveTeam = async (team) => {
     const ok = await confirm({
@@ -271,62 +384,119 @@ export default function ContextSidebar({ isOpen, onClose }) {
 
   return (
     <aside className={`context-sidebar ${collapsed ? "context-sidebar--collapsed" : ""} ${isOpen ? "context-sidebar--open" : ""}`}>
-      <button
-        type="button"
-        className="context-sidebar__collapse-btn"
-        onClick={() => setCollapsed((c) => !c)}
-        title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-      >
-        {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
-      </button>
-      {!collapsed && (
+      {collapsed ? (
+        <button
+          type="button"
+          className="context-sidebar__collapse-btn context-sidebar__collapse-btn--expand"
+          onClick={() => setCollapsed(false)}
+          title="Expand sidebar"
+        >
+          <PanelLeftOpen size={16} />
+        </button>
+      ) : (
         <>
-      {/* Pane Header */}
       <div className="context-sidebar__header">
         {activeTab === "teams" && (
           <>
             <h2>Teams</h2>
-            <button
-              className="context-sidebar__add-btn context-sidebar__add-btn--labeled"
-              title="Create Team"
-              onClick={() => setShowCreateTeam(true)}
-            >
-              <Plus size={14} />
-              <span>New</span>
-            </button>
+            <div className="context-sidebar__header-actions">
+              <button
+                className="context-sidebar__add-btn context-sidebar__add-btn--labeled"
+                title="Create Team"
+                onClick={() => setShowCreateTeam(true)}
+              >
+                <Plus size={14} />
+                <span>New</span>
+              </button>
+              <button
+                type="button"
+                className="context-sidebar__collapse-btn"
+                onClick={() => setCollapsed(true)}
+                title="Collapse sidebar"
+              >
+                <PanelLeftClose size={16} />
+              </button>
+            </div>
           </>
         )}
         {activeTab === "chat" && (
           <>
             <h2>Chat</h2>
-            <button
-              className="context-sidebar__add-btn"
-              title="New Chat"
-              onClick={() => setShowNewDM(true)}
-            >
-              <Plus size={16} />
-            </button>
+            <div className="context-sidebar__header-actions">
+              <button
+                className="context-sidebar__add-btn context-sidebar__add-btn--labeled context-sidebar__add-btn--new-chat"
+                title="New Chat"
+                onClick={() => setShowNewDM(true)}
+              >
+                <Plus size={14} />
+                <span>New Chat</span>
+              </button>
+              <button
+                type="button"
+                className="context-sidebar__collapse-btn"
+                onClick={() => setCollapsed(true)}
+                title="Collapse sidebar"
+              >
+                <PanelLeftClose size={16} />
+              </button>
+            </div>
           </>
         )}
         {activeTab === "activity" && (
           <>
             <h2>Activity</h2>
-            {notifications.some((n) => !n.is_read) && (
+            <div className="context-sidebar__header-actions">
+              {notifications.some((n) => !n.is_read) && (
+                <button
+                  className="context-sidebar__read-btn"
+                  title="Mark all read"
+                  onClick={markAllNotificationsRead}
+                >
+                  Mark all read
+                </button>
+              )}
               <button
-                className="context-sidebar__read-btn"
-                title="Mark all read"
-                onClick={markAllNotificationsRead}
+                type="button"
+                className="context-sidebar__collapse-btn"
+                onClick={() => setCollapsed(true)}
+                title="Collapse sidebar"
               >
-                Mark all read
+                <PanelLeftClose size={16} />
               </button>
-            )}
+            </div>
           </>
         )}
-        {activeTab === "meetings" && <h2>Calendar</h2>}
+        {activeTab === "meetings" && (
+          <>
+            <h2>Calendar</h2>
+            <div className="context-sidebar__header-actions">
+              <button
+                type="button"
+                className="context-sidebar__collapse-btn"
+                onClick={() => setCollapsed(true)}
+                title="Collapse sidebar"
+              >
+                <PanelLeftClose size={16} />
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Pane Scroll Body */}
       <div className="context-sidebar__body">
+        {(activeTab === "teams" || activeTab === "chat") && (
+          <div className="context-sidebar__search">
+            <Search size={14} />
+            <input
+              type="search"
+              placeholder={activeTab === "teams" ? "Search teams & channels..." : "Search conversations..."}
+              value={sidebarSearch}
+              onChange={(e) => setSidebarSearch(e.target.value)}
+            />
+          </div>
+        )}
+
         {/* ================= TEAMS TAB ================= */}
         {activeTab === "teams" && (
           <div className="context-sidebar__teams-tree">
@@ -341,12 +511,14 @@ export default function ContextSidebar({ isOpen, onClose }) {
                   Create Team
                 </button>
               </div>
+            ) : filteredTeamsTree.length === 0 ? (
+              <div className="context-sidebar__empty">
+                <p>No teams or channels match &ldquo;{sidebarSearch}&rdquo;</p>
+              </div>
             ) : (
-              teams.map((team) => {
-                const isExpanded = !!expandedTeams[team.id];
-                const teamChannels = channels.filter(
-                  (c) => c.team === team.id && c.channel_type !== "DIRECT"
-                );
+              filteredTeamsTree.map((team) => {
+                const isExpanded = searchLower ? true : !!expandedTeams[team.id];
+                const teamChannels = getFilteredTeamChannels(team.id);
 
                 return (
                   <div key={team.id} className="context-sidebar__team-node">
@@ -383,6 +555,15 @@ export default function ContextSidebar({ isOpen, onClose }) {
                             <LogOut size={12} />
                           </button>
                         )}
+                        {isTeamAdmin(team.id) && (
+                          <button
+                            title="Delete Team"
+                            className="context-sidebar__delete-btn"
+                            onClick={() => handleDeleteTeam(team)}
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        )}
                         <button
                           title="Create Channel"
                           onClick={() => {
@@ -401,22 +582,33 @@ export default function ContextSidebar({ isOpen, onClose }) {
                           <div className="context-sidebar__empty-ch">No channels</div>
                         ) : (
                           teamChannels.map((ch) => (
-                            <Link
-                              key={ch.id}
-                              to={`/teams/${team.id}/channels/${ch.id}`}
-                              className={`context-sidebar__channel-link ${
-                                activeChannelId === ch.id
-                                  ? "context-sidebar__channel-link--active"
-                                  : ""
-                              }`}
-                            >
-                              {ch.channel_type === "PRIVATE" ? (
-                                <Lock size={12} className="context-sidebar__ch-icon" />
-                              ) : (
-                                <Hash size={12} className="context-sidebar__ch-icon" />
+                            <div key={ch.id} className="context-sidebar__channel-row">
+                              <Link
+                                to={`/teams/${team.id}/channels/${ch.id}`}
+                                className={`context-sidebar__channel-link ${
+                                  activeChannelId === ch.id
+                                    ? "context-sidebar__channel-link--active"
+                                    : ""
+                                }`}
+                              >
+                                {ch.channel_type === "PRIVATE" ? (
+                                  <Lock size={12} className="context-sidebar__ch-icon" />
+                                ) : (
+                                  <Hash size={12} className="context-sidebar__ch-icon" />
+                                )}
+                                <span>{ch.name}</span>
+                              </Link>
+                              {canDeleteChannel(ch, team.id) && (
+                                <button
+                                  type="button"
+                                  className="context-sidebar__channel-delete"
+                                  title="Delete channel"
+                                  onClick={(e) => handleDeleteChannel(e, ch, team.id)}
+                                >
+                                  <Trash2 size={11} />
+                                </button>
                               )}
-                              <span>{ch.name}</span>
-                            </Link>
+                            </div>
                           ))
                         )}
                       </div>
@@ -442,10 +634,12 @@ export default function ContextSidebar({ isOpen, onClose }) {
                   Start a Chat
                 </button>
               </div>
+            ) : filteredDmChannels.length === 0 ? (
+              <div className="context-sidebar__empty">
+                <p>No conversations match &ldquo;{sidebarSearch}&rdquo;</p>
+              </div>
             ) : (
-              channels
-                .filter((c) => c.channel_type === "DIRECT")
-                .map((ch) => {
+              filteredDmChannels.map((ch) => {
                   const dmName = getDMName(ch);
                   return (
                     <Link
@@ -497,7 +691,7 @@ export default function ContextSidebar({ isOpen, onClose }) {
                   >
                     <div className="context-sidebar__notif-meta">
                       <strong>{n.title}</strong>
-                      <span className="context-sidebar__notif-dot" />
+                      {!n.is_read && <span className="context-sidebar__notif-dot" />}
                     </div>
                     <p dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(n.message) }} />
                   </div>
@@ -737,15 +931,27 @@ export default function ContextSidebar({ isOpen, onClose }) {
       </Modal>
 
       {/* 4. Start New DM Modal */}
-      <Modal open={showNewDM} onClose={() => setShowNewDM(false)} title="New Chat">
+      <Modal open={showNewDM} onClose={() => { setShowNewDM(false); setNewDmSearch(""); }} title="New Chat">
         <div className="context-sidebar__new-dm">
-          <span className="context-sidebar__section-title">Select a member to chat with</span>
+          <p className="context-sidebar__new-dm-hint">Pick someone to start a direct message</p>
+          <div className="context-sidebar__new-dm-search">
+            <Search size={14} />
+            <input
+              type="search"
+              placeholder="Search by name or email..."
+              value={newDmSearch}
+              onChange={(e) => setNewDmSearch(e.target.value)}
+              autoFocus
+            />
+          </div>
           <div className="context-sidebar__new-dm-list">
-            {users
-              .filter((u) => u.id !== profile?.id)
-              .map((u) => (
+            {filteredNewDmUsers.length === 0 ? (
+              <p className="context-sidebar__new-dm-empty">No users match your search</p>
+            ) : (
+              filteredNewDmUsers.map((u) => (
                 <button
                   key={u.id}
+                  type="button"
                   className="context-sidebar__new-dm-user"
                   onClick={() => handleStartDM(u.id)}
                 >
@@ -760,7 +966,8 @@ export default function ContextSidebar({ isOpen, onClose }) {
                     <span>{u.email}</span>
                   </div>
                 </button>
-              ))}
+              ))
+            )}
           </div>
         </div>
       </Modal>

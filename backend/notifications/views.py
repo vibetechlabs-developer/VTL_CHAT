@@ -30,6 +30,15 @@ class NotificationListCreateView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+class NotificationMarkAllReadView(APIView):
+
+    def post(self, request):
+        updated = Notification.objects.filter(
+            recipient=request.user, is_read=False
+        ).update(is_read=True)
+        return Response({"marked_read": updated})
+
+
 class NotificationDetailView(APIView):
 
     def get(self, request, notification_id):

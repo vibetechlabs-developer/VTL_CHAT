@@ -21,7 +21,10 @@ import {
   PhoneOff,
   Video,
   AlertCircle,
+  MessageSquarePlus,
 } from "lucide-react";
+import * as workspaceApi from "../../services/workspaceApi";
+import logger from "../../utils/logger";
 import {
   formatMessageTime,
   getInitials,
@@ -86,6 +89,7 @@ export default function MessageArea({
   onDMSelect,
   onVideoCall,
   onAudioCall,
+  onNewChat,
 }) {
   const confirm = useConfirm();
   const { reactionEmoji, reactionTypes } = useReactionChoices();
@@ -103,6 +107,36 @@ export default function MessageArea({
   const [editingText, setEditingText] = useState("");
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const moreMenuRef = useRef(null);
+  const [searchResults, setSearchResults] = useState(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (!q || !channel?.id) {
+      setSearchResults(null);
+      setSearchLoading(false);
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      setSearchLoading(true);
+      try {
+        const res = await workspaceApi.searchMessages(q, channel.id);
+        if (!cancelled) {
+          setSearchResults(res.data?.results ?? res.data ?? []);
+        }
+      } catch (err) {
+        logger.error(err);
+        if (!cancelled) setSearchResults([]);
+      } finally {
+        if (!cancelled) setSearchLoading(false);
+      }
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [searchQuery, channel?.id]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -248,6 +282,17 @@ export default function MessageArea({
           )}
         </div>
         <div className="message-area__toolbar">
+          {onNewChat && (
+            <button
+              type="button"
+              className="message-area__new-chat-btn"
+              title="New Chat"
+              onClick={onNewChat}
+            >
+              <MessageSquarePlus size={16} />
+              <span className="message-area__new-chat-label">New Chat</span>
+            </button>
+          )}
           {showSearchInput && (
             <input
               type="text"
@@ -264,7 +309,10 @@ export default function MessageArea({
             className={`message-area__toolbar-btn message-area__toolbar-btn--search ${showSearchInput ? "active" : ""}`}
             onClick={() => {
               setShowSearchInput(!showSearchInput);
-              if (showSearchInput) setSearchQuery("");
+              if (showSearchInput) {
+                setSearchQuery("");
+                setSearchResults(null);
+              }
             }}
           >
             <Search size={18} />
@@ -493,17 +541,40 @@ export default function MessageArea({
         {(() => {
           let displayedMessages = messages;
           if (showPinnedOnly) displayedMessages = displayedMessages.filter(m => m.is_pinned);
-          if (searchQuery) displayedMessages = displayedMessages.filter(m => m.content && m.content.toLowerCase().includes(searchQuery.toLowerCase()));
-
-          if (!loading && messages.length > 0 && displayedMessages.length === 0) {
-            return <p className="message-area__empty">No messages match your criteria.</p>;
+          if (searchQuery.trim()) {
+            displayedMessages = searchResults ?? displayedMessages.filter(
+              (m) => m.content && m.content.toLowerCase().includes(searchQuery.toLowerCase())
+            );
           }
 
+          if (searchLoading) {
+            return (
+              <div className="message-area__search-loading">
+                <Loader2 size={18} className="spin" />
+                <span>Searching messages...</span>
+              </div>
+            );
+          }
+
+          if (!loading && messages.length > 0 && displayedMessages.length === 0) {
+            return (
+              <p className="message-area__empty">
+                {searchQuery.trim()
+                  ? `No messages match "${searchQuery.trim()}"`
+                  : "No messages match your criteria."}
+              </p>
+            );
+          }
+
+          const currentPrevCount = prevMessageCountRef.current;
           return displayedMessages.map((msg, i) => {
+          const isNew = !currentPrevCount || i === displayedMessages.length - 1;
+          const messageKey = msg.client_uuid || msg.id || `msg-${i}`;
+
           if (msg.is_system) {
             const isEnd = msg.content.toLowerCase().includes("ended");
             return (
-              <div key={msg.id} className="message-area__system-msg">
+              <div key={messageKey} className="message-area__system-msg">
                 <div className="message-area__system-msg-content">
                   {isEnd
                     ? <PhoneOff size={13} className="message-area__system-msg-icon message-area__system-msg-icon--end" />
@@ -528,10 +599,10 @@ export default function MessageArea({
 
           return (
             <div
-              key={msg.id}
+              key={messageKey}
               className={`message-area__message ${isSelf ? "message-area__message--self" : ""} ${
                 prevSame ? "message-area__message--compact" : ""
-              } ${msgReactions.length > 0 ? "message-area__message--has-reactions" : ""} ${msg.isOptimistic ? "message-area__message--optimistic" : ""}`}
+              } ${msgReactions.length > 0 ? "message-area__message--has-reactions" : ""} ${msg.isOptimistic ? "message-area__message--optimistic" : ""} ${isNew ? "message-fade-in" : ""}`}
               onMouseEnter={() => setHoveredId(msg.id)}
               onMouseLeave={() => setHoveredId(null)}
             >

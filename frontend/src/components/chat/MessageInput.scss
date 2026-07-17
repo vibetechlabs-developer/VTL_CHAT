@@ -5,9 +5,14 @@
   padding: 0 1.25rem 1.25rem;
   flex-shrink: 0;
   position: relative;
+  padding-bottom: max(1.25rem, env(safe-area-inset-bottom, 0px));
+
+  @media (max-width: 767px) {
+    padding: 0 0.75rem max(0.75rem, env(safe-area-inset-bottom, 0px));
+  }
 
   @media (max-width: 480px) {
-    padding: 0 0.75rem 0.75rem;
+    padding: 0 0.65rem max(0.65rem, env(safe-area-inset-bottom, 0px));
   }
 
   &__file-input {
@@ -65,8 +70,8 @@
   }
 
   &__attach {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     border-radius: $radius-md;
     @include flex-center;
     background: rgba(255, 255, 255, 0.05);
@@ -139,8 +144,8 @@
   }
 
   &__send {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     border-radius: $radius-md;
     @include flex-center;
     background: linear-gradient(135deg, $accent-purple, $accent-blue);

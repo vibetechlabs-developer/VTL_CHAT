@@ -1,10 +1,26 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import AuroraBackground from "./AuroraBackground";
 import FloatingSidebar from "./FloatingSidebar";
 import ContextSidebar from "./ContextSidebar";
 import TopBar from "./TopBar";
 import { SkeletonList } from "./Skeleton";
+import { useIsMobile } from "../../hooks/useMediaQuery";
 import "./AppLayout.scss";
+
+function isMobileDetailRoute(pathname) {
+  return (
+    /\/chat\/dm\/\d+/.test(pathname) ||
+    /\/teams\/\d+\/channels\/\d+/.test(pathname)
+  );
+}
+
+function getBackTarget(pathname) {
+  if (pathname.startsWith("/chat/dm/")) return "/chat";
+  if (pathname.includes("/teams/") && pathname.includes("/channels/")) return "/teams";
+  return null;
+}
 
 export default function AppLayout({
   children,
@@ -23,6 +39,35 @@ export default function AppLayout({
   unreadNotificationCount = 0,
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const isMobile = useIsMobile();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const isDetailView = isMobile && isMobileDetailRoute(location.pathname);
+  const backTarget = getBackTarget(location.pathname);
+
+  const backButton = useMemo(() => {
+    if (!isDetailView || !backTarget) return null;
+    return (
+      <button
+        type="button"
+        className="topbar__back-btn"
+        onClick={() => navigate(backTarget)}
+        aria-label="Back to list"
+      >
+        <ArrowLeft size={20} />
+      </button>
+    );
+  }, [isDetailView, backTarget, navigate]);
+
+  const layoutClass = [
+    "app-layout",
+    isMobile ? "app-layout--mobile" : "",
+    isDetailView ? "app-layout--detail" : "",
+    fullBleed ? "app-layout--full-bleed" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   if (loading) {
     return (
@@ -46,31 +91,28 @@ export default function AppLayout({
   }
 
   return (
-    <div className="app-layout">
+    <div className={layoutClass}>
       <AuroraBackground />
 
-      {/* Backdrop overlay for mobile menu drawer */}
       {mobileMenuOpen && (
-        <div 
-          className="app-layout__backdrop" 
-          onClick={() => setMobileMenuOpen(false)} 
+        <div
+          className="app-layout__backdrop"
+          onClick={() => setMobileMenuOpen(false)}
         />
       )}
 
-      {/* Column A: Slim Left App Bar */}
       <FloatingSidebar
         onLogout={onLogout}
         initials={initials}
         avatarUrl={profile?.avatar_url}
       />
 
-      {/* Column B: Context-aware Secondary Sidebar */}
-      <ContextSidebar 
-        isOpen={mobileMenuOpen} 
-        onClose={() => setMobileMenuOpen(false)} 
+      <ContextSidebar
+        isOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+        isMobile={isMobile}
       />
 
-      {/* Column C: Main Workspace */}
       <div className="app-layout__main">
         <TopBar
           title={title}
@@ -86,8 +128,14 @@ export default function AppLayout({
           unreadCount={unreadNotificationCount}
           onLogout={onLogout}
           onMenuClick={() => setMobileMenuOpen(true)}
+          backButton={backButton}
+          showMenuButton={isMobile && !isDetailView}
         />
-        <div className={`app-layout__content ${fullBleed ? "app-layout__content--full" : "app-layout__content--padded"}`}>
+        <div
+          className={`app-layout__content ${
+            fullBleed ? "app-layout__content--full" : "app-layout__content--padded"
+          }`}
+        >
           {children}
         </div>
       </div>

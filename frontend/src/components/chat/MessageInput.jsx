@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Smile, AtSign, Paperclip, Send, Loader2, X, Users } from "lucide-react";
+import { useToast } from "../../context/ToastContext";
+import { ALLOWED_FILE_ACCEPT, validateFile } from "../../utils/fileUpload";
 import "./MessageInput.scss";
 
 const COMMON_EMOJIS = [
@@ -32,6 +34,7 @@ export default function MessageInput({
   const [showMentions, setShowMentions] = useState(false);
   const [mentionQuery, setMentionQuery] = useState("");
   const [mentionIndex, setMentionIndex] = useState(-1);
+  const toast = useToast();
 
   // Close popups on click outside
   useEffect(() => {
@@ -60,7 +63,14 @@ export default function MessageInput({
 
   const handleFileChange = (e) => {
     const selected = e.target.files?.[0];
-    if (selected) setFile(selected);
+    if (!selected) return;
+    const error = validateFile(selected);
+    if (error) {
+      toast.error(error);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+    setFile(selected);
   };
 
   const clearFile = () => {
@@ -250,7 +260,7 @@ export default function MessageInput({
           ref={fileInputRef}
           type="file"
           className="message-input__file-input"
-          accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+          accept={ALLOWED_FILE_ACCEPT}
           onChange={handleFileChange}
           disabled={disabled || sending}
         />

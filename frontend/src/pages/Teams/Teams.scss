@@ -436,12 +436,11 @@
   .teams-page {
     &__grid {
       grid-template-columns: 1fr;
-      padding-bottom: 80px; // space for mobile bottom nav
+      padding-bottom: calc(#{$mobile-nav-height} + 1rem);
     }
 
     &__toolbar {
       justify-content: space-between;
-      padding-bottom: 80px; // only when grid is empty
     }
   }
 
@@ -502,7 +501,7 @@
 @media (max-width: 480px) {
   .teams-page {
     &__grid {
-      padding-bottom: 80px;
+      padding-bottom: calc(#{$mobile-nav-height} + 0.5rem);
     }
   }
 
@@ -524,12 +523,16 @@
       gap: 0.75rem;
     }
 
+    // Stack action buttons full-width on smallest screens
     &__actions {
+      flex-direction: column;
       gap: 0.35rem;
 
       .vtl-btn--sm {
-        padding: 0.35rem 0.65rem;
-        font-size: 0.72rem;
+        width: 100%;
+        justify-content: center;
+        min-height: 44px;
+        font-size: 0.78rem;
       }
     }
 

@@ -16,8 +16,18 @@ html,
 body,
 #root {
   width: 100%;
-  min-height: 100vh;
+  height: 100%;
+  min-height: 100dvh;
+  overflow-x: hidden;
 }
+
+#root {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+
 
 :root {
   --bg-primary: #050816;

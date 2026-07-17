@@ -164,10 +164,23 @@
   }
 }
 
+// ── Large desktop: slightly wider sidebar with labels ────────────────────────
+@media (min-width: 1920px) {
+  .floating-sidebar {
+    width: 80px;
+    min-width: 80px;
+
+    &__link {
+      padding: 0.75rem 0.5rem;
+    }
+  }
+}
+
+// ── Mobile (≤767px): convert to fixed bottom tab bar ─────────────────────────
 @media (max-width: 767px) {
   .floating-sidebar {
     width: 100%;
-    height: calc(60px + env(safe-area-inset-bottom, 0px));
+    height: calc(#{$mobile-nav-height} + env(safe-area-inset-bottom, 0px));
     min-width: unset;
     flex-direction: row;
     padding: 0;
@@ -188,7 +201,7 @@
       flex-direction: row;
       height: 100%;
       gap: 0;
-      overflow: hidden; // Do not scroll nav items horizontally
+      overflow: hidden;
     }
 
     &__link {
@@ -234,7 +247,7 @@
       min-width: 0;
       height: 100%;
       padding: 0.4rem 0.15rem;
-      
+
       .floating-sidebar__link-label {
         font-size: 0.55rem;
         max-width: 100%;
@@ -242,6 +255,35 @@
         text-overflow: ellipsis;
         white-space: nowrap;
       }
+    }
+  }
+}
+
+// ── Very small mobile (≤380px): icon-only bottom tab — hide labels ────────────
+@media (max-width: 380px) {
+  .floating-sidebar {
+    &__link-label {
+      display: none;
+    }
+
+    &__link {
+      // Larger icon hit area when labels are gone
+      padding: 0.2rem 0;
+      justify-content: center;
+    }
+
+    &__logout-btn {
+      padding: 0.2rem 0;
+      justify-content: center;
+
+      .floating-sidebar__link-label {
+        display: none;
+      }
+    }
+
+    &__link-icon {
+      width: 26px;
+      height: 26px;
     }
   }
 }

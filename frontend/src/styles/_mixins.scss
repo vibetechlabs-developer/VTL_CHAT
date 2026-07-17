@@ -91,8 +91,20 @@
 }
 
 // ── Responsive Breakpoint Mixins ─────────────────────────────────────────────
+@mixin mobile-sm {
+  @media (max-width: #{$bp-mobile-sm}) {
+    @content;
+  }
+}
+
 @mixin mobile {
   @media (max-width: #{$bp-mobile}) {
+    @content;
+  }
+}
+
+@mixin mobile-large {
+  @media (min-width: #{$bp-mobile-sm + 1px}) and (max-width: #{$bp-mobile}) {
     @content;
   }
 }
@@ -109,10 +121,27 @@
   }
 }
 
+@mixin small-laptop {
+  @media (min-width: #{$bp-tablet + 1px}) and (max-width: #{$bp-small-laptop}) {
+    @content;
+  }
+}
+
 @mixin desktop {
   @media (min-width: #{$bp-tablet + 1px}) {
     @content;
   }
+}
+
+@mixin large-desktop {
+  @media (min-width: #{$bp-large-desktop + 1px}) {
+    @content;
+  }
+}
+
+// ── Safe-area bottom padding (iOS notch / Android nav bar) ───────────────────
+@mixin safe-bottom($base: 1rem) {
+  padding-bottom: max(#{$base}, env(safe-area-inset-bottom, 0px));
 }
 
 // ── Touch Target (Apple HIG / Google: min 44x44px) ───────────────────────────

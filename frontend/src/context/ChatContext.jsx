@@ -22,7 +22,6 @@ export function ChatProvider({ children }) {
     const payload = { channel: channelId, content };
     if (clientUuid) payload.client_uuid = clientUuid;
     const res = await workspaceApi.sendMessage(payload);
-    setMessages((prev) => [...prev, res.data]);
     return res.data;
   };
 

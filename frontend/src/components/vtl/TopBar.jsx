@@ -18,7 +18,8 @@ export default function TopBar({
   unreadCount = 0,
   onLogout,
   onMenuClick,
-  backButton = null, // Optional JSX: rendered left of title on mobile
+  backButton = null,
+  showMenuButton = true,
 }) {
   const { settings } = useSettings();
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -45,18 +46,17 @@ export default function TopBar({
     <header className="topbar">
       <div className="topbar__left">
         {backButton ? (
-          // On mobile, render back arrow instead of hamburger
           <div className="topbar__back-slot">{backButton}</div>
-        ) : (
-          <button 
-            type="button" 
-            className="topbar__menu-btn" 
+        ) : showMenuButton ? (
+          <button
+            type="button"
+            className="topbar__menu-btn"
             onClick={onMenuClick}
             title="Open Menu"
           >
             <Menu size={20} />
           </button>
-        )}
+        ) : null}
         <div className="topbar__titles">
           <h1>{title}</h1>
           {subtitle && <p>{subtitle}</p>}
